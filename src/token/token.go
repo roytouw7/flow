@@ -25,7 +25,7 @@ const (
 	//	Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
-	NEWLINE = "\n"
+	NEWLINE = "eol"
 
 	LPAREN = "("
 	RPAREN = ")"

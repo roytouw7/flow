@@ -32,8 +32,8 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case ';':
 		tok = token.New(token.SEMICOLON, l.ch)
-	case '\n':
-		tok = token.New(token.NEWLINE, l.ch)
+	case '\n', '\r':
+		tok = token.New(token.NEWLINE, 0)
 	case '(':
 		tok = token.New(token.LPAREN, l.ch)
 	case ')':
@@ -113,7 +113,7 @@ func (l *Lexer) readNumber() string {
 }
 
 func (l *Lexer) eatWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+	for l.ch == ' ' || l.ch == '\t' {
 		l.readChar()
 	}
 }
