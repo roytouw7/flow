@@ -26,7 +26,7 @@ func (test *Suite) TestLetStatements() {
 	p := New(l)
 
 	program := p.ParseProgram()
-	checkParseErrors(t, p)
+	checkParseErrors(test.T(), p)
 	if program == nil {
 		test.Fail("ParseProgram() returned nil")
 		return
@@ -74,4 +74,47 @@ func (test *Suite) testLetStatement(s ast.Statement, name string) bool {
 	}
 
 	return true
+}
+
+func (test *Suite) TestReturnStatements() {
+	data, err := os.ReadFile("return_statements.flow")
+	if err != nil {
+		panic(err)
+	}
+
+	l := lexer.New(string(data))
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParseErrors(test.T(), p)
+
+	if len(program.Statements) != 3 {
+		test.Fail("program.Statements does not contain 3 statements; got=%d", len(program.Statements))
+	}
+
+	for _, stmt := range program.Statements {
+		returnStmt, ok := stmt.(*ast.ReturnStatement)
+		if !ok {
+			test.T().Errorf("stmt not *ast.returnStatement. got=%T", stmt)
+			continue
+		}
+
+		if returnStmt.TokenLiteral() != "return" {
+			test.T().Errorf("returnStmt.TokenLiteral not 'return', got %q", returnStmt.TokenLiteral())
+		}
+	}
+}
+
+func checkParseErrors(t *testing.T, p *Parser) {
+	errors := p.errors
+
+	if len(errors) == 0 {
+		return
+	}
+
+	t.Errorf("parser had %d errors", len(errors))
+	for _, err := range errors {
+		t.Errorf("parser error: %q", err)
+	}
+	t.FailNow()
 }

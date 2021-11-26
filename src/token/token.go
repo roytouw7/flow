@@ -25,6 +25,7 @@ const (
 	//	Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
+	NEWLINE = "\n"
 
 	LPAREN = "("
 	RPAREN = ")"

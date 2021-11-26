@@ -15,5 +15,6 @@ func main() {
 
 	fmt.Printf("Hello %s! this is the Flow programming language!\n", user.Username)
 	fmt.Printf("Feel free to enter any commands!\n")
+	fmt.Printf("Enter .flow file to read it as input instead!\n")
 	repl.Start(os.Stdin, os.Stdout)
 }
