@@ -92,7 +92,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 // TODO implement
 func (p *Parser) getExpression() {
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
+	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.EOL) {
 		p.nextToken()
 	}
 }

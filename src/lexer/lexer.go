@@ -32,8 +32,10 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case ';':
 		tok = token.New(token.SEMICOLON, l.ch)
-	case '\n', '\r':
+	case '\n':
 		tok = token.New(token.NEWLINE, 0)
+	case '\r':
+		tok = token.New(token.EOL, 0)
 	case '(':
 		tok = token.New(token.LPAREN, l.ch)
 	case ')':

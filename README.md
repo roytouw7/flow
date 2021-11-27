@@ -6,6 +6,7 @@
 Reactive programming language experimental outlines.
 
 Hello World in Flow; prints "Hello World" to the terminal.
+
 ```
 package main
 
@@ -14,6 +15,25 @@ const main = () => {
     "hello world"
         => capitalize
         ~> print
+}
+```
+
+Test Programs
+=
+
+> For testing the  compiler
+
+```
+package main
+
+const main = () => {
+    let a = 0
+    
+    a
+        => multiply(2)  // curried fn multiply
+        ~> print
+    
+    a = 2
 }
 ```
 
@@ -64,6 +84,7 @@ Symbols & reserved keywords
 ### Types
 
 ### General Keywords
+
 | Keyword     |           Name           |                              Meaning                              |                          Context |
 | ----------- | :----------------------: | :---------------------------------------------------------------: | -------------------------------: |
 | `const`     |   Constant Declaration   |                      Declares a new constant                      |                                  |
@@ -90,6 +111,7 @@ Symbols & reserved keywords
 | `throw`     |    Throw Declaration     |                          Throws a error                           |                                  |
 
 ### Reactive Keywords
+
 | Keyword        |         Name          |                            Meaning                             |                 Context |
 | -------------- | :-------------------: | :------------------------------------------------------------: | ----------------------: |
 | `error`        |    Error Operator     |                 Adds a error handling function                 |                   Error |
@@ -104,17 +126,13 @@ Symbols & reserved keywords
 | `only`         |     Only Operator     |   Adds a function to be only called upon certain conditions    |                     any |
 | `fragment`     |   Fragment Operator   |            Fragments a source into multiple sources            |                     any |
 
-
-
-
-
 Reactivity
 =
 
 ## Base Principles
 
-Everything can become a source by using the flow `=>` symbol. Postfixing a
-source with the pipe symbol maps the following operators over the source.
+Everything can become a source by using the flow `=>` symbol. Postfixing a source with the pipe symbol maps the
+following operators over the source.
 
 ```
 "Hello World"
@@ -174,7 +192,8 @@ const numbers ~int => [1,2,3]
 
 ## Flow
 
-The values of a source don't start "flowing" until it has at least one subscriber. To consume values from a source the subscribe `~>` is used.
+The values of a source don't start "flowing" until it has at least one subscriber. To consume values from a source the
+subscribe `~>` is used.
 
 ```
 [1,2,3]
@@ -187,14 +206,17 @@ The values of a source don't start "flowing" until it has at least one subscribe
 ## Operators
 
 ### Error
+
 > TODO
 
 ### Closed
+
 > TODO
 
 ### Split
 
 Split splits incoming source value into seperate emits.
+
 ```
 // Prints 1 2 3 4 5 on seperate lines
 [1,2,3,4,5]
@@ -202,7 +224,9 @@ Split splits incoming source value into seperate emits.
     ~> print
 ```
 
-Split takes an optional argument in the form of a function. The signature of the function is `<T>(value T, index int) bool`
+Split takes an optional argument in the form of a function. The signature of the function
+is `<T>(value T, index int) bool`
+
 ```
 // Prints 12\n 34\n 5
 [1,2,3,4,5]
@@ -212,7 +236,9 @@ Split takes an optional argument in the form of a function. The signature of the
 
 ### Reduce
 
-Reduces seperate emits into a collection as a single emit, the default behaviour is joining all emits into a single array until the source is completed.
+Reduces seperate emits into a collection as a single emit, the default behaviour is joining all emits into a single
+array until the source is completed.
+
 ```
 // Prints [1,2,3,4,5]
 [1,2,3,4,5]
@@ -222,6 +248,7 @@ Reduces seperate emits into a collection as a single emit, the default behaviour
 ```
 
 Reduce takes an optional reducer function.
+
 ```
 // Prints [3,7,5]
 [1,2,3,4,5]
@@ -244,6 +271,7 @@ const reduceEverySecondIndex = (acc int[], val int, index int) int[] => {
 ### ReduceStream
 
 ReduceStream works like reduce but takes a second argument for when to emit.
+
 ```
 //Prints [3]\n [7]\n [5]\n
 [1,2,3,4,5]
@@ -264,7 +292,10 @@ const reduceEverySecondIndex = (acc int[], val int, index int) int[] => {
 ```
 
 ### For
-For adds iteration logic to a pipeline, it takes a iterator function as a optional argument. It emits the last received value.
+
+For adds iteration logic to a pipeline, it takes a iterator function as a optional argument. It emits the last received
+value.
+
 ```
 // Prints "Iteration: 1!", "Iteration: 2!"... forever
 "Iteration:"
@@ -274,7 +305,9 @@ For adds iteration logic to a pipeline, it takes a iterator function as a option
     ~> print
 ```
 
-For takes a optional argument for how may iterations should occur, in the form of a iterator function `<T>(val T, i int) bool`.
+For takes a optional argument for how may iterations should occur, in the form of a iterator
+function `<T>(val T, i int) bool`.
+
 ```
 // Prints 1 to 10
 void
@@ -283,16 +316,21 @@ void
 ```
 
 ### Filter
+
 > TODO
 
 ### Flat
+
 > TODO
 
 ### Once
+
 > TODO
 
 ### Share
+
 Share shares the source over multiple subscribers.
+
 ```
 // Prints two identical random values every second
 const random => void
@@ -308,7 +346,10 @@ random
     ~> print
 ```
 
-To show what share actually does, take a look at the previous example without the share operator. This version prints two different values every second, the reason being each subscribe action creates a new source to consume of; using the share operator this is not the case.
+To show what share actually does, take a look at the previous example without the share operator. This version prints
+two different values every second, the reason being each subscribe action creates a new source to consume of; using the
+share operator this is not the case.
+
 ```
 // Prints two different random values every second
 const random => void
@@ -328,7 +369,8 @@ Functions
 
 ## Base structure and arguments
 
-A function is declared by a set of desired arguments within a pair of parentheses followed by the flow `=>` symbol. Multiple arguments can be seperated by comma's.
+A function is declared by a set of desired arguments within a pair of parentheses followed by the flow `=>` symbol.
+Multiple arguments can be seperated by comma's.
 
 ```
 // A function without arguments, prints Hello World
@@ -340,7 +382,8 @@ A function is declared by a set of desired arguments within a pair of parenthese
 (input int) => print(input + 1)
 ```
 
-For multiple arguments of the same type only one type declaration is required; the following two functions are exactly equal in operation.
+For multiple arguments of the same type only one type declaration is required; the following two functions are exactly
+equal in operation.
 
 ```
 // Two add functions
@@ -364,7 +407,8 @@ Functions requiring multiple lines of statements can define a function body usin
 
 ## Returning values
 
-Functions returing a non-void value declare a return type following the parentheses containing the optional argument list.
+Functions returing a non-void value declare a return type following the parentheses containing the optional argument
+list.
 
 ```
 // Identity function

@@ -9,14 +9,14 @@ const (
 	INT   = "INT"
 
 	//	Operators
-	ASSIGN = "="
-	PLUS   = "+"
-	MINUS = "-"
-	BANG = "!"
+	ASSIGN   = "="
+	PLUS     = "+"
+	MINUS    = "-"
+	BANG     = "!"
 	ASTERISK = "*"
-	SLASH = "/"
+	SLASH    = "/"
 
-	EQ = "=="
+	EQ     = "=="
 	NOT_EQ = "!="
 
 	LT = "<"
@@ -25,7 +25,8 @@ const (
 	//	Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
-	NEWLINE = "eol"
+	EOL       = "eol"
+	NEWLINE   = "nwl"
 
 	LPAREN = "("
 	RPAREN = ")"
@@ -35,11 +36,11 @@ const (
 	//	Keywords
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
-	TRUE = "TRUE"
-	FALSE = "FALSE"
-	IF = "IF"
-	ELSE = "ELSE"
-	RETURN = "RETURN"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	RETURN   = "RETURN"
 )
 
 type Type string
@@ -49,13 +50,13 @@ type Token struct {
 	Literal string
 }
 
-var keywords = map[string]Type {
-	"fn": FUNCTION,
-	"let": LET,
-	"true": TRUE,
-	"false": FALSE,
-	"if": IF,
-	"else": ELSE,
+var keywords = map[string]Type{
+	"fn":     FUNCTION,
+	"let":    LET,
+	"true":   TRUE,
+	"false":  FALSE,
+	"if":     IF,
+	"else":   ELSE,
 	"return": RETURN,
 }
 
