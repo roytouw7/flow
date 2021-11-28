@@ -28,10 +28,11 @@ package main
 
 const main = () => {
     let a = 0
+    let b = a + 2
     
-    a
+    b
         => multiply(2)  // curried fn multiply
-        ~> print
+        ~> print // prints twice (2, 4)
     
     a = 2
 }
