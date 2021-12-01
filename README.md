@@ -18,23 +18,23 @@ const main = () => {
 }
 ```
 
-Test Programs
+Example Programs
 =
 
-> For testing the  compiler
+> For testing the  compiler and drawing thoughts
 
 ```
-package main
+package main            // Main package for compiler
 
-const main = () => {
-    let a = 0
-    let b = a + 2
+const main = () => {    // Main entrypoint for compiler
+    let a = 0           // Can reassign new values to a
+    const b = a + 2     // Can't reassign b to new value, value is not fixed
     
     b
         => multiply(2)  // curried fn multiply
-        ~> print // prints twice (2, 4)
+        ~> print        // prints twice imideiatly and after reassignment of a (2, 4)
     
-    a = 2
+    a = 2               // Reasigns new value to a, triggers value change emit in b
 }
 ```
 

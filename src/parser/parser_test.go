@@ -3,6 +3,7 @@ package parser
 import (
 	"Flow/src/ast"
 	"Flow/src/lexer"
+	"fmt"
 	"github.com/stretchr/testify/suite"
 	"os"
 	"testing"
@@ -33,7 +34,7 @@ func (test *Suite) TestLetStatements() {
 	}
 
 	if len(program.Statements) != 3 {
-		test.Fail("program.Statements dos not contain 3 statements; got =%d", program.Statements)
+		test.T().Fatalf("program.Statements does not contain 3 statements; got =%d", len(program.Statements))
 		return
 	}
 
@@ -76,6 +77,7 @@ func (test *Suite) testLetStatement(s ast.Statement, name string) bool {
 	return true
 }
 
+
 func (test *Suite) TestReturnStatements() {
 	data, err := os.ReadFile("return_statements.flow")
 	if err != nil {
@@ -89,7 +91,7 @@ func (test *Suite) TestReturnStatements() {
 	checkParseErrors(test.T(), p)
 
 	if len(program.Statements) != 3 {
-		test.Fail("program.Statements does not contain 3 statements; got=%d", len(program.Statements))
+		test.T().Fatalf("program.Statements does not contain 3 statements; got=%d", len(program.Statements))
 	}
 
 	for _, stmt := range program.Statements {
@@ -113,9 +115,7 @@ func (test *Suite) TestIdentifierExpression() {
 	program := p.ParseProgram()
 	checkParseErrors(test.T(), p)
 
-	if len(program.Statements) != 1 {
-		test.T().Fatalf("program has not enough statements; got=%d", len(program.Statements))
-	}
+	test.checkProgramLines(program, 1)
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
 		test.T().Fatalf("program.Statements[0] is not ast.ExpresionStatement; got=%T", program.Statements[0])
@@ -140,9 +140,7 @@ func (test *Suite) TestIntegerLiteralExpression() {
 	program := p.ParseProgram()
 	checkParseErrors(test.T(), p)
 
-	if len(program.Statements) != 1 {
-		test.T().Fatalf("program has not enough statements; got=%d", len(program.Statements))
-	}
+	test.checkProgramLines(program, 1)
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
 		test.T().Fatalf("program.Statements[0] is not ast.ExpresionStatement; got=%T", program.Statements[0])
@@ -155,8 +153,60 @@ func (test *Suite) TestIntegerLiteralExpression() {
 		test.T().Errorf("literal.Value not %d; got=%T", 5, literal.Value)
 	}
 	if literal.TokenLiteral() != "5" {
-		test.T().Errorf("literal.TokenLiteral not %s; got=%s", "5", literal.TokenLiteral( ))
+		test.T().Errorf("literal.TokenLiteral not %s; got=%s", "5", literal.TokenLiteral())
 	}
+}
+
+func (test *Suite) TestParsingPrefixExpressions() {
+	prefixTests := []struct {
+		input        string
+		operator     string
+		integerValue int64
+	}{
+		{"!5", "!", 5},
+		{"-15;", "-", 15},
+	}
+
+	for _, tt := range prefixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParseErrors(test.T(), p)
+
+		test.checkProgramLines(program, 1)
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			test.T().Fatalf("program.Statements[0] is not ast.ExpresionStatement; got=%T", program.Statements[0])
+		}
+		exp, ok := stmt.Expression.(*ast.PrefixExpression)
+		if !ok {
+			test.T().Fatalf("stmt is not ast.PrefixExpressions; goy=%T", stmt.Expression)
+		}
+		if exp.Operator != tt.operator {
+			test.T().Fatalf("exp.Operator is not '%s'; got=%s", tt.operator, exp.Operator)
+		}
+		if !testIntegerLiteral(test.T(), exp.Right, tt.integerValue) {
+			return
+		}
+	}
+}
+
+func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
+	integ, ok := il.(*ast.IntegerLiteral)
+	if !ok {
+		t.Errorf("il not *ast.IntegerLiteral; got=%T", il)
+		return false
+	}
+	if integ.Value != value {
+		t.Errorf("integ.Value not %d; got=%d", value, integ.Value)
+		return false
+	}
+	if integ.TokenLiteral() != fmt.Sprintf("%d", value) {
+		t.Errorf("integ.TokenLiteral not %d; got=%s", value, integ.TokenLiteral())
+		return false
+	}
+
+	return true
 }
 
 func checkParseErrors(t *testing.T, p *Parser) {
@@ -171,4 +221,10 @@ func checkParseErrors(t *testing.T, p *Parser) {
 		t.Errorf("parser error: %q", err)
 	}
 	t.FailNow()
+}
+
+func (test *Suite) checkProgramLines(p *ast.Program, expectedLines int) {
+	if len(p.Statements) != expectedLines {
+		test.T().Fatalf("program does not have the correct amount of   statements; got=%d expected=%d", len(p.Statements), expectedLines)
+	}
 }
