@@ -33,10 +33,7 @@ func (test *Suite) TestLetStatements() {
 		return
 	}
 
-	if len(program.Statements) != 3 {
-		test.T().Fatalf("program.Statements does not contain 3 statements; got =%d", len(program.Statements))
-		return
-	}
+	test.checkProgramLines(program, 3)
 
 	tests := []struct {
 		expectedIdentifier string
@@ -77,7 +74,6 @@ func (test *Suite) testLetStatement(s ast.Statement, name string) bool {
 	return true
 }
 
-
 func (test *Suite) TestReturnStatements() {
 	data, err := os.ReadFile("return_statements.flow")
 	if err != nil {
@@ -89,10 +85,7 @@ func (test *Suite) TestReturnStatements() {
 
 	program := p.ParseProgram()
 	checkParseErrors(test.T(), p)
-
-	if len(program.Statements) != 3 {
-		test.T().Fatalf("program.Statements does not contain 3 statements; got=%d", len(program.Statements))
-	}
+	test.checkProgramLines(program, 3)
 
 	for _, stmt := range program.Statements {
 		returnStmt, ok := stmt.(*ast.ReturnStatement)
@@ -207,6 +200,50 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	}
 
 	return true
+}
+
+func (test *Suite) TestParsingInfixExpressions() {
+	infixTests := []struct {
+		input      string
+		leftValue  int64
+		operator   string
+		rightValue int64
+	}{
+		{input: "5 + 5", leftValue: 5, operator: "+", rightValue: 5},
+		{input: "5 - 5", leftValue: 5, operator: "-", rightValue: 5},
+		{input: "5 * 5", leftValue: 5, operator: "*", rightValue: 5},
+		{input: "5 / 5", leftValue: 5, operator: "/", rightValue: 5},
+		{input: "5 > 5", leftValue: 5, operator: ">", rightValue: 5},
+		{input: "5 < 5", leftValue: 5, operator: "<", rightValue: 5},
+		{input: "5 == 5", leftValue: 5, operator: "==", rightValue: 5},
+		{input: "5 != 5", leftValue: 5, operator: "!=", rightValue: 5},
+	}
+
+	for _, tt := range infixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParseErrors(test.T(), p)
+		test.checkProgramLines(program, 1)
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			test.T().Fatalf("program.Statements[0] is not ast.ExpressionStatement; got=%T", program.Statements[0])
+		}
+		exp, ok := stmt.Expression.(*ast.InfixExpression)
+		if !ok {
+			test.T().Fatalf("stmt.Expressions is not ast.InfixExpressions; got=%T", stmt.Expression)
+		}
+		if !testIntegerLiteral(test.T(), exp.Left, tt.leftValue) {
+			return
+		}
+		if exp.Operator != tt.operator {
+			test.T().Fatalf("exp.Operator is not '%s'; got=%s", tt.operator, exp.Operator)
+		}
+		if !testIntegerLiteral(test.T(), exp.Right, tt.rightValue) {
+			return
+		}
+	}
 }
 
 func checkParseErrors(t *testing.T, p *Parser) {

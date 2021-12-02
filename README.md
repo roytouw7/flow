@@ -32,7 +32,7 @@ const main = () => {    // Main entrypoint for compiler
     
     b
         => multiply(2)  // curried fn multiply
-        ~> print        // prints twice imideiatly and after reassignment of a (2, 4)
+        ~> print        // prints twice immediately and after reassignment of a (2, 4)
     
     a = 2               // Reasigns new value to a, triggers value change emit in b
 }
