@@ -3,6 +3,7 @@ package parser
 import (
 	"Flow/src/ast"
 	"Flow/src/lexer"
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"os"
@@ -18,7 +19,7 @@ func TestClientTestSuite(t *testing.T) {
 }
 
 func (test *Suite) TestLetStatements() {
-	data, err := os.ReadFile("let_statements.flow")
+	data, err := os.ReadFile("test_assets/let_statements.flow")
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +76,7 @@ func (test *Suite) testLetStatement(s ast.Statement, name string) bool {
 }
 
 func (test *Suite) TestReturnStatements() {
-	data, err := os.ReadFile("return_statements.flow")
+	data, err := os.ReadFile("test_assets/return_statements.flow")
 	if err != nil {
 		panic(err)
 	}
@@ -242,6 +243,34 @@ func (test *Suite) TestParsingInfixExpressions() {
 		}
 		if !testIntegerLiteral(test.T(), exp.Right, tt.rightValue) {
 			return
+		}
+	}
+}
+
+func (test *Suite) TestOperatorPrecedenceParsing() {
+	data, err := os.ReadFile("test_assets/precedence_tests.json")
+	if err != nil {
+		panic(err)
+	}
+
+	var tests []struct {
+		Input    string
+		Expected string
+	}
+
+	if err = json.Unmarshal(data, &tests); err != nil {
+		panic(err)
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.Input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParseErrors(test.T(), p)
+
+		actual := program.String()
+		if actual != tt.Expected {
+			test.T().Fatalf("expected=%q; got=%q", tt.Expected, actual)
 		}
 	}
 }
