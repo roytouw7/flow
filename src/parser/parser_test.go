@@ -263,7 +263,7 @@ func testInfixExpression(t *testing.T, exp ast.Expression, left interface{}, ope
 }
 
 func testIdentifier(t *testing.T, il ast.Expression, value string) bool {
-	ident, ok := il.(*ast.Identifier)
+	ident, ok := il.(*ast.IdentifierLiteral)
 	if !ok {
 		t.Errorf("il not *ast.IntegerLiteral; got=%T", il)
 		return false
