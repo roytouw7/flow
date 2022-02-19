@@ -115,6 +115,8 @@ func (es *ExpressionStatement) String() string {
 	return ""
 }
 
+// todo place all the literals and expressions in own file
+
 type IntegerLiteral struct {
 	Token token.Token
 	Value int64
@@ -124,7 +126,15 @@ func (il *IntegerLiteral) expressionNode()      {}
 func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
 func (il *IntegerLiteral) String() string       { return il.Token.Literal }
 
-// TODO places all the expressions and statements in their own file this file is getting huge...
+type BooleanLiteral struct {
+	Token token.Token
+	Value bool
+}
+
+func (b *BooleanLiteral) expressionNode()      {}
+func (b *BooleanLiteral) TokenLiteral() string { return b.Token.Literal }
+func (b *BooleanLiteral) String() string       { return b.Token.Literal }
+
 type PrefixExpression struct {
 	Token    token.Token // The prefix token, e.g. !
 	Operator string
