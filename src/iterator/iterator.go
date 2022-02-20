@@ -26,6 +26,9 @@ type MetaData struct {
 func New(sourceFile string) FileIterator {
 	return &fileIterator{
 		source: sourceFile,
+		pos:    0,
+		relPos: 1,
+		line:   1,
 	}
 }
 
@@ -35,20 +38,33 @@ func (i *fileIterator) Next() (string, *MetaData, error) {
 		return "", nil, err
 	}
 
+	meta := i.getMetaData()
 	i.incrementPosition()
 
-	return next, nil, nil
+	return next, meta, nil
+}
+
+func (i *fileIterator) getMetaData() *MetaData {
+	return &MetaData{
+		i.pos,
+		i.relPos,
+		i.line,
+	}
 }
 
 func (i *fileIterator) getNextValidCharacter() (string, error) {
-	for ok, err := isValidCharacter(i.source[i.pos : i.pos+1]); !ok; ok, err = isValidCharacter(i.source[i.pos : i.pos+1]) {
+	for ok, err := isValidCharacter(i.currentChar()); !ok; ok, err = isValidCharacter(i.currentChar()) {
 		if err != nil {
 			return "", err
 		}
 		i.incrementPosition()
 	}
 
-	return i.source[i.pos : i.pos+1], nil
+	return i.currentChar(), nil
+}
+
+func (i *fileIterator) currentChar() string {
+	return i.source[i.pos : i.pos+1]
 }
 
 func isValidCharacter(c string) (bool, error) {
@@ -65,7 +81,14 @@ func isValidCharacter(c string) (bool, error) {
 }
 
 func (i *fileIterator) incrementPosition() {
-	i.pos += 1
+	i.relPos++
+
+	if []rune(i.currentChar())[0] == '\n' {
+		i.line++
+		i.relPos = 1
+	}
+
+	i.pos++
 }
 
 func (i *fileIterator) HasNext() bool {
