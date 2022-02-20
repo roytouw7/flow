@@ -32,39 +32,39 @@ func New(sourceFile string) FileIterator {
 	}
 }
 
-func (i *fileIterator) Next() (string, *MetaData, error) {
-	next, err := i.getNextValidCharacter()
+func (iterator *fileIterator) Next() (string, *MetaData, error) {
+	next, err := iterator.getNextValidCharacter()
 	if err != nil {
 		return "", nil, err
 	}
 
-	meta := i.getMetaData()
-	i.incrementPosition()
+	meta := iterator.getMetaData()
+	iterator.incrementPosition()
 
 	return next, meta, nil
 }
 
-func (i *fileIterator) getMetaData() *MetaData {
+func (iterator *fileIterator) getMetaData() *MetaData {
 	return &MetaData{
-		i.pos,
-		i.relPos,
-		i.line,
+		iterator.pos,
+		iterator.relPos,
+		iterator.line,
 	}
 }
 
-func (i *fileIterator) getNextValidCharacter() (string, error) {
-	for ok, err := isValidCharacter(i.currentChar()); !ok; ok, err = isValidCharacter(i.currentChar()) {
+func (iterator *fileIterator) getNextValidCharacter() (string, error) {
+	for ok, err := isValidCharacter(iterator.currentChar()); !ok; ok, err = isValidCharacter(iterator.currentChar()) {
 		if err != nil {
 			return "", err
 		}
-		i.incrementPosition()
+		iterator.incrementPosition()
 	}
 
-	return i.currentChar(), nil
+	return iterator.currentChar(), nil
 }
 
-func (i *fileIterator) currentChar() string {
-	return i.source[i.pos : i.pos+1]
+func (iterator *fileIterator) currentChar() string {
+	return iterator.source[iterator.pos : iterator.pos+1]
 }
 
 func isValidCharacter(c string) (bool, error) {
@@ -80,25 +80,50 @@ func isValidCharacter(c string) (bool, error) {
 	return true, nil
 }
 
-func (i *fileIterator) incrementPosition() {
-	i.relPos++
+func (iterator *fileIterator) incrementPosition() {
+	iterator.relPos++
 
-	if []rune(i.currentChar())[0] == '\n' {
-		i.line++
-		i.relPos = 1
+	if []rune(iterator.currentChar())[0] == '\n' {
+		iterator.line++
+		iterator.relPos = 1
 	}
 
-	i.pos++
+	iterator.pos++
 }
 
-func (i *fileIterator) HasNext() bool {
-	return i.pos < len(i.source)
+func (iterator *fileIterator) HasNext() bool {
+	return iterator.pos < len(iterator.source)
 }
 
-func (i *fileIterator) Peek() (string, error) {
-	return "", nil
+func (iterator *fileIterator) Peek() (string, error) {
+	return iterator.peek(1)
 }
 
-func (i *fileIterator) PeekN(n int) (string, error) {
-	return "", nil
+func (iterator *fileIterator) PeekN(n int) (string, error) {
+	return iterator.peek(n)
+}
+
+func (iterator *fileIterator) peek(n int) (string, error) {
+	if iterator.pos+n > len(iterator.source) {
+		return "", fmt.Errorf("peek %d out of bounds", n)
+	}
+
+	// count newline characters "\r\n" as single increment
+	offset := iterator.pos
+	for i := 0; i < n; {
+		if []rune(iterator.source[offset : offset+1])[0] != '\r' {
+			i++
+		}
+		offset++
+	}
+
+	if offset+1 > len(iterator.source) {
+		return "", fmt.Errorf("peek %d out of bounds", n)
+	}
+
+	peekChar := iterator.source[offset : offset+1]
+	if peekChar == "\r" {
+		peekChar = "\n"
+	}
+	return peekChar, nil
 }

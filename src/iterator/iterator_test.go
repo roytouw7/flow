@@ -15,11 +15,7 @@ func TestClientTestSuite(t *testing.T) {
 }
 
 func (test *Suite) TestNext() {
-	data, err := os.ReadFile("test_assets/test_program.flow")
-	if err != nil {
-		panic(err)
-	}
-	iterator := New(string(data))
+	iterator := prepareIterator("test_assets/test_program.flow")
 
 	tt := []string{"l", "e", "t", "f", "i", "v", "e", "7", "=", "9", ";", "x", "+", "+", "c", "=", "=", "2", ";"}
 
@@ -48,11 +44,7 @@ func (test *Suite) TestNext() {
 }
 
 func (test *Suite) TestMetaData() {
-	data, err := os.ReadFile("test_assets/test_program.flow")
-	if err != nil {
-		panic(err)
-	}
-	iterator := New(string(data))
+	iterator := prepareIterator("test_assets/test_program.flow")
 
 	tt := []struct {
 		char              string
@@ -95,4 +87,73 @@ func (test *Suite) TestMetaData() {
 			test.T().Errorf("expected relative position to be %d, got %d", t.line, metaData.line)
 		}
 	}
+}
+
+func (test *Suite) TestPeek() {
+	iterator := prepareIterator("test_assets/test_program.flow")
+
+	char, err := iterator.Peek()
+	test.expectChar(char, err, "e")
+	char, err = iterator.PeekN(5)
+	test.expectChar(char, err, "i")
+	char, err = iterator.PeekN(14)
+	test.expectChar(char, err, "\n")
+	char, err = iterator.PeekN(19)
+	test.expectChar(char, err, "c")
+
+	_, _, _ = iterator.Next()
+	char, err = iterator.Peek()
+	test.expectChar(char, err, "t")
+	char, err = iterator.PeekN(5)
+	test.expectChar(char, err, "v")
+
+	// move enough to be at second line of input
+	for i := 0; i < 10; i++ {
+		_, _, _ = iterator.Next()
+	}
+	char, err = iterator.Peek()
+	test.expectChar(char, err, "x")
+
+	// test out of bound peek handling
+	_, err = iterator.PeekN(11)
+	if err != nil {
+		test.T().Errorf("unexpected out of bounds peek")
+	}
+	_, err = iterator.PeekN(12)
+	if err == nil {
+		test.T().Errorf("expected out of bounds error on peek but received nil")
+	}
+
+	// move to last character
+	for iterator.HasNext() {
+		_, _, _ = iterator.Next()
+	}
+	_, err = iterator.Peek()
+	if err == nil {
+		test.T().Errorf("expected out of bounds error on peek but received nil")
+	}
+}
+
+func prepareIterator(sourceFile string) FileIterator {
+	data, err := os.ReadFile(sourceFile)
+	if err != nil {
+		panic(err)
+	}
+	iterator := New(string(data))
+
+	return iterator
+}
+
+func (test *Suite) expectChar(char string, err error, expected string) bool {
+	if err != nil {
+		test.T().Error(err)
+		return false
+	}
+
+	if char != expected {
+		test.T().Errorf("expected peek char to be %s got %s", expected, char)
+		return false
+	}
+
+	return true
 }
