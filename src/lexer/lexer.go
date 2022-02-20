@@ -15,9 +15,9 @@ func New(input string) *Lexer {
 	return l
 }
 
-//NextToken
 // TODO add file name, line and pos and add it to token.type use io reader to save this data (for error display later on)
 // TODO move the logic in default case to own switch statement, maybe add floating number support
+
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
