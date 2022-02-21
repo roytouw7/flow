@@ -5,14 +5,14 @@ import (
 	"unicode"
 )
 
-type FileIterator interface {
-	Next() (string, *MetaData, error)
-	Peek() (string, error)
-	PeekN(n int) (string, error)
+type StringIterator interface {
+	Next() (rune, *MetaData, error)
+	Peek() (rune, error)
+	PeekN(n int) (rune, error)
 	HasNext() bool
 }
 
-type fileIterator struct {
+type stringIterator struct {
 	source            string
 	pos, line, relPos int
 }
@@ -23,8 +23,8 @@ type MetaData struct {
 	pos, relPos, line int
 }
 
-func New(sourceFile string) FileIterator {
-	return &fileIterator{
+func New(sourceFile string) StringIterator {
+	return &stringIterator{
 		source: sourceFile,
 		pos:    0,
 		relPos: 1,
@@ -32,10 +32,10 @@ func New(sourceFile string) FileIterator {
 	}
 }
 
-func (iterator *fileIterator) Next() (string, *MetaData, error) {
+func (iterator *stringIterator) Next() (rune, *MetaData, error) {
 	next, err := iterator.getNextValidCharacter()
 	if err != nil {
-		return "", nil, err
+		return 0, nil, err
 	}
 
 	meta := iterator.getMetaData()
@@ -44,7 +44,7 @@ func (iterator *fileIterator) Next() (string, *MetaData, error) {
 	return next, meta, nil
 }
 
-func (iterator *fileIterator) getMetaData() *MetaData {
+func (iterator *stringIterator) getMetaData() *MetaData {
 	return &MetaData{
 		iterator.pos,
 		iterator.relPos,
@@ -52,10 +52,10 @@ func (iterator *fileIterator) getMetaData() *MetaData {
 	}
 }
 
-func (iterator *fileIterator) getNextValidCharacter() (string, error) {
+func (iterator *stringIterator) getNextValidCharacter() (rune, error) {
 	for ok, err := isValidCharacter(iterator.currentChar()); !ok; ok, err = isValidCharacter(iterator.currentChar()) {
 		if err != nil {
-			return "", err
+			return 0, err
 		}
 		iterator.incrementPosition()
 	}
@@ -63,27 +63,22 @@ func (iterator *fileIterator) getNextValidCharacter() (string, error) {
 	return iterator.currentChar(), nil
 }
 
-func (iterator *fileIterator) currentChar() string {
-	return iterator.source[iterator.pos : iterator.pos+1]
+func (iterator *stringIterator) currentChar() rune {
+	return []rune(iterator.source[iterator.pos : iterator.pos+1])[0]
 }
 
-func isValidCharacter(c string) (bool, error) {
-	runes := []rune(c)
-	if len(runes) > 1 {
-		return false, fmt.Errorf("can not convert string %s to rune, too long", c)
-	}
-
-	if unicode.IsSpace(runes[0]) {
+func isValidCharacter(ch rune) (bool, error) {
+	if unicode.IsSpace(ch) {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-func (iterator *fileIterator) incrementPosition() {
+func (iterator *stringIterator) incrementPosition() {
 	iterator.relPos++
 
-	if []rune(iterator.currentChar())[0] == '\n' {
+	if iterator.currentChar() == '\n' {
 		iterator.line++
 		iterator.relPos = 1
 	}
@@ -91,21 +86,21 @@ func (iterator *fileIterator) incrementPosition() {
 	iterator.pos++
 }
 
-func (iterator *fileIterator) HasNext() bool {
+func (iterator *stringIterator) HasNext() bool {
 	return iterator.pos < len(iterator.source)
 }
 
-func (iterator *fileIterator) Peek() (string, error) {
+func (iterator *stringIterator) Peek() (rune, error) {
 	return iterator.peek(1)
 }
 
-func (iterator *fileIterator) PeekN(n int) (string, error) {
+func (iterator *stringIterator) PeekN(n int) (rune, error) {
 	return iterator.peek(n)
 }
 
-func (iterator *fileIterator) peek(n int) (string, error) {
+func (iterator *stringIterator) peek(n int) (rune, error) {
 	if iterator.pos+n > len(iterator.source) {
-		return "", fmt.Errorf("peek %d out of bounds", n)
+		return 0, fmt.Errorf("peek %d out of bounds", n)
 	}
 
 	// count newline characters "\r\n" as single increment
@@ -118,12 +113,12 @@ func (iterator *fileIterator) peek(n int) (string, error) {
 	}
 
 	if offset+1 > len(iterator.source) {
-		return "", fmt.Errorf("peek %d out of bounds", n)
+		return 0, fmt.Errorf("peek %d out of bounds", n)
 	}
 
-	peekChar := iterator.source[offset : offset+1]
-	if peekChar == "\r" {
-		peekChar = "\n"
+	peekChar := []rune(iterator.source[offset : offset+1])[0]
+	if peekChar == '\r' {
+		peekChar = '\n'
 	}
 	return peekChar, nil
 }

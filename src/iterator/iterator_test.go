@@ -17,14 +17,14 @@ func TestClientTestSuite(t *testing.T) {
 func (test *Suite) TestNext() {
 	iterator := prepareIterator("test_assets/test_program.flow")
 
-	tt := []string{"l", "e", "t", "f", "i", "v", "e", "7", "=", "9", ";", "x", "+", "+", "c", "=", "=", "2", ";"}
+	tt := []rune{'l', 'e', 't', 'f', 'i', 'v', 'e', '7', '=', '9', ';', 'x', '+', '+', 'c', '=', '=', '2', ';'}
 
 	i := 0
 	for iterator.HasNext() {
 		token, _, err := iterator.Next()
 		expected := tt[i]
 
-		if token == "" {
+		if token == 0 {
 			test.T().Errorf("token is nil")
 		}
 		if err != nil {
@@ -32,7 +32,7 @@ func (test *Suite) TestNext() {
 		}
 
 		if token != expected {
-			test.T().Errorf("expected token=%s got=%s", expected, token)
+			test.T().Errorf("iteration %d, expected token=%c got=%c", i, expected, token)
 		}
 
 		i++
@@ -93,26 +93,26 @@ func (test *Suite) TestPeek() {
 	iterator := prepareIterator("test_assets/test_program.flow")
 
 	char, err := iterator.Peek()
-	test.expectChar(char, err, "e")
+	test.expectChar(char, err, 'e')
 	char, err = iterator.PeekN(5)
-	test.expectChar(char, err, "i")
+	test.expectChar(char, err, 'i')
 	char, err = iterator.PeekN(14)
-	test.expectChar(char, err, "\n")
+	test.expectChar(char, err, '\n')
 	char, err = iterator.PeekN(19)
-	test.expectChar(char, err, "c")
+	test.expectChar(char, err, 'c')
 
 	_, _, _ = iterator.Next()
 	char, err = iterator.Peek()
-	test.expectChar(char, err, "t")
+	test.expectChar(char, err, 't')
 	char, err = iterator.PeekN(5)
-	test.expectChar(char, err, "v")
+	test.expectChar(char, err, 'v')
 
 	// move enough to be at second line of input
 	for i := 0; i < 10; i++ {
 		_, _, _ = iterator.Next()
 	}
 	char, err = iterator.Peek()
-	test.expectChar(char, err, "x")
+	test.expectChar(char, err, 'x')
 
 	// test out of bound peek handling
 	_, err = iterator.PeekN(11)
@@ -134,7 +134,7 @@ func (test *Suite) TestPeek() {
 	}
 }
 
-func prepareIterator(sourceFile string) FileIterator {
+func prepareIterator(sourceFile string) StringIterator {
 	data, err := os.ReadFile(sourceFile)
 	if err != nil {
 		panic(err)
@@ -144,14 +144,14 @@ func prepareIterator(sourceFile string) FileIterator {
 	return iterator
 }
 
-func (test *Suite) expectChar(char string, err error, expected string) bool {
+func (test *Suite) expectChar(char rune, err error, expected rune) bool {
 	if err != nil {
 		test.T().Error(err)
 		return false
 	}
 
 	if char != expected {
-		test.T().Errorf("expected peek char to be %s got %s", expected, char)
+		test.T().Errorf("expected peek char to be %c got %c", expected, char)
 		return false
 	}
 
