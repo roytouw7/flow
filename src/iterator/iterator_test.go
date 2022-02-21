@@ -17,7 +17,7 @@ func TestClientTestSuite(t *testing.T) {
 func (test *Suite) TestNext() {
 	iterator := prepareIterator("test_assets/test_program.flow")
 
-	tt := []rune{'l', 'e', 't', 'f', 'i', 'v', 'e', '7', '=', '9', ';', 'x', '+', '+', 'c', '=', '=', '2', ';'}
+	tt := []rune{'l', 'e', 't', ' ', 'f', 'i', 'v', 'e', '7', ' ', '=', ' ', '9', ';', '\n', 'x', '+', '+', '\n', 'c', ' ', '=', '=', ' ', '2', ';'}
 
 	i := 0
 	for iterator.HasNext() {
@@ -32,7 +32,7 @@ func (test *Suite) TestNext() {
 		}
 
 		if token != expected {
-			test.T().Errorf("iteration %d, expected token=%c got=%c", i, expected, token)
+			test.T().Errorf("iteration %d, expected token=%q got=%q", i, expected, token)
 		}
 
 		i++
@@ -53,20 +53,27 @@ func (test *Suite) TestMetaData() {
 		{"l", 0, 1, 1},
 		{"e", 1, 2, 1},
 		{"t", 2, 3, 1},
+		{" ", 3, 4, 1},
 		{"f", 4, 5, 1},
 		{"i", 5, 6, 1},
 		{"v", 6, 7, 1},
 		{"e", 7, 8, 1},
 		{"7", 8, 9, 1},
+		{" ", 9, 10, 1},
 		{"=", 10, 11, 1},
+		{" ", 11, 12, 1},
 		{"9", 12, 13, 1},
 		{";", 13, 14, 1},
+		{"\n", 15, 15, 1},
 		{"x", 16, 1, 2},
 		{"+", 17, 2, 2},
 		{"+", 18, 3, 2},
+		{"\n", 20, 4, 2},
 		{"c", 21, 1, 3},
+		{" ", 22, 2, 3},
 		{"=", 23, 3, 3},
 		{"=", 24, 4, 3},
+		{" ", 25, 5, 3},
 		{"2", 26, 6, 3},
 		{";", 27, 7, 3},
 	}
@@ -108,7 +115,7 @@ func (test *Suite) TestPeek() {
 	test.expectChar(char, err, 'v')
 
 	// move enough to be at second line of input
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 13; i++ {
 		_, _, _ = iterator.Next()
 	}
 	char, err = iterator.Peek()

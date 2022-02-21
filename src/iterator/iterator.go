@@ -2,7 +2,6 @@ package iterator
 
 import (
 	"fmt"
-	"unicode"
 )
 
 type StringIterator interface {
@@ -68,7 +67,7 @@ func (iterator *stringIterator) currentChar() rune {
 }
 
 func isValidCharacter(ch rune) (bool, error) {
-	if unicode.IsSpace(ch) {
+	if ch == '\r' {
 		return false, nil
 	}
 
@@ -76,14 +75,17 @@ func isValidCharacter(ch rune) (bool, error) {
 }
 
 func (iterator *stringIterator) incrementPosition() {
-	iterator.relPos++
-
-	if iterator.currentChar() == '\n' {
+	switch iterator.currentChar() {
+	case '\n':
 		iterator.line++
 		iterator.relPos = 1
+		iterator.pos++
+	case '\r':
+		iterator.pos++
+	default:
+		iterator.pos++
+		iterator.relPos++
 	}
-
-	iterator.pos++
 }
 
 func (iterator *stringIterator) HasNext() bool {
