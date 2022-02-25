@@ -17,7 +17,7 @@ func New(input string) *lexer {
 }
 
 func (l *lexer) NextToken() *token.Token {
-	ch, meta, err := l.iterator.Next()
+	ch, meta, err := l.getNextNonWhiteSpaceCharacter()
 	if err != nil {
 		panic(err)
 	}
@@ -26,12 +26,33 @@ func (l *lexer) NextToken() *token.Token {
 	if ok {
 		return tok
 	}
+
 	ok, tok = l.isStringLiteral(ch, meta)
+	if ok {
+		identifierType := token.LookupIdentType(tok.Literal)
+		tok.Type = identifierType
+		return tok
+	}
+
+	ok, tok = l.isNumericLiteralToken(ch, meta)
 	if ok {
 		return tok
 	}
 
-	return nil
+	return curriedSymbolTokenConstructor(meta)(token.ILLEGAL)
+}
+
+func (l *lexer) getNextNonWhiteSpaceCharacter() (rune, *iterator.MetaData, error) {
+	for {
+		ch, meta, err := l.iterator.Next()
+		if err != nil {
+			return ch, meta, err
+		}
+
+		if !(ch != '\n' && unicode.IsSpace(ch)) {
+			return ch, meta, err
+		}
+	}
 }
 
 // todo default rune type is 0, EOL should be given different symbol in iterator to differentiate
@@ -73,9 +94,9 @@ func (l *lexer) isSymbolToken(ch rune, meta *iterator.MetaData) (bool, *token.To
 	case '\n':
 		return true, newToken(token.NEWLINE)
 	case '(':
-		return true, newToken(token.LBRACE)
+		return true, newToken(token.LPAREN)
 	case ')':
-		return true, newToken(token.RBRACE)
+		return true, newToken(token.RPAREN)
 	case '{':
 		return true, newToken(token.LBRACE)
 	case '}':
@@ -84,8 +105,6 @@ func (l *lexer) isSymbolToken(ch rune, meta *iterator.MetaData) (bool, *token.To
 		return false, newToken(token.UNKNOWN)
 	}
 }
-
-// todo peeking can go out of bounds
 
 func (l *lexer) isStringLiteral(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
 	if !unicode.IsLetter(ch) {
@@ -101,7 +120,7 @@ func (l *lexer) isStringLiteral(ch rune, meta *iterator.MetaData) (bool, *token.
 			panic(err)
 		}
 
-		if unicode.IsSpace(p) {
+		if !(unicode.IsLetter(p) || unicode.IsDigit(p)) {
 			break
 		}
 
@@ -116,14 +135,33 @@ func (l *lexer) isStringLiteral(ch rune, meta *iterator.MetaData) (bool, *token.
 	return true, token.New(token.IDENT, string(literal), meta.RelPos, meta.Line)
 }
 
-//func (l *lexer) isNumericLiteralToken(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
-//
-//}
-
-func curriedTokenConstructor(meta *iterator.MetaData) func(t token.Type, literal string) *token.Token {
-	return func(t token.Type, literal string) *token.Token {
-		return token.New(t, literal, meta.RelPos, meta.Line)
+func (l *lexer) isNumericLiteralToken(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
+	if !unicode.IsDigit(ch) {
+		return false, token.NewSymbol(token.UNKNOWN, meta.RelPos, meta.Line)
 	}
+
+	literal := make([]rune, 0)
+	literal = append(literal, ch)
+
+	for l.iterator.HasNext() {
+		p, err := l.iterator.Peek()
+		if err != nil {
+			panic(err)
+		}
+
+		if !unicode.IsDigit(p) {
+			break
+		}
+
+		next, _, err := l.iterator.Next()
+		if err != nil {
+			panic(err)
+		}
+
+		literal = append(literal, next)
+	}
+
+	return true, token.New(token.INT, string(literal), meta.RelPos, meta.Line)
 }
 
 func curriedSymbolTokenConstructor(meta *iterator.MetaData) func(t token.Type) *token.Token {
@@ -136,7 +174,7 @@ func curriedSymbolTokenConstructor(meta *iterator.MetaData) func(t token.Type) *
 
 func (l *lexer) isMultiSymbolToken(chs ...rune) bool {
 	for i, ch := range chs {
-		p, err := l.iterator.PeekN(i)
+		p, err := l.iterator.PeekN(i + 1)
 		if err != nil {
 			panic(err)
 		}
@@ -145,7 +183,7 @@ func (l *lexer) isMultiSymbolToken(chs ...rune) bool {
 		}
 	}
 
-	l.skip(len(chs) - 1)
+	l.skip(len(chs))
 	return true
 }
 
