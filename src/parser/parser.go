@@ -2,7 +2,6 @@ package parser
 
 import (
 	"Flow/src/ast"
-	"Flow/src/lexer"
 	"Flow/src/token"
 	"fmt"
 	"strconv"
@@ -30,13 +29,17 @@ var precedences = map[token.Type]int{
 	token.ASTERISK: PRODUCT,
 }
 
+type Lexer interface {
+	NextToken() *token.Token
+}
+
 type (
 	prefixParseFn func() ast.Expression
 	infixParseFn  func(ast.Expression) ast.Expression
 )
 
 type Parser struct {
-	l *lexer.Lexer
+	l Lexer
 
 	curToken  token.Token
 	peekToken token.Token
@@ -46,7 +49,7 @@ type Parser struct {
 	infixParseFns  map[token.Type]infixParseFn
 }
 
-func New(l *lexer.Lexer) *Parser {
+func New(l Lexer) *Parser {
 	p := &Parser{
 		l:      l,
 		errors: []string{},
@@ -111,9 +114,11 @@ func (p *Parser) Errors() []string {
 	return p.errors
 }
 
+//todo see if new token returned as pointer should be handled differently in parser
+
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
-	p.peekToken = p.l.NextToken()
+	p.peekToken = *p.l.NextToken()
 }
 
 func (p *Parser) ParseProgram() *ast.Program {

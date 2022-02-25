@@ -15,6 +15,29 @@ func TestClientTestSuite(t *testing.T) {
 	suite.Run(t, new(Suite))
 }
 
+func (test *Suite) TestSymbolToken() {
+	l := New("== ") // todo remove trailing space when fixed
+	t := l.NextToken()
+	test.NotNil(t)
+
+	if t.Literal != "==" {
+		test.T().Errorf("expected %s, got %s", "==", t.Literal)
+	}
+	if t.Type != token.EQ {
+		test.T().Errorf("expected %s, got %s", token.EQ, t.Type)
+	}
+}
+
+func (test *Suite) TestStringLiteral() {
+	l := New("al  ") // todo remove trailing space when fixed
+	t := l.NextToken()
+	test.NotNil(t)
+
+	if t.Literal != "al" {
+		test.T().Errorf("expected %s, got %s", "al", t.Literal)
+	}
+}
+
 func (test *Suite) TestNextToken() {
 	data, err := os.ReadFile("test_assets/test_program.flow")
 	test.Nil(err)

@@ -1,143 +1,159 @@
 package lexer
 
-import "Flow/src/token"
+import (
+	"Flow/src/iterator"
+	"Flow/src/token"
+	"unicode"
+)
 
-type Lexer struct {
-	input        string
-	position     int  // current position in input (points to current char)
-	readPosition int  // current reading position in input (after current char)
-	ch           byte // current char under examination
+type lexer struct {
+	iterator iterator.StringIterator
 }
 
-func New(input string) *Lexer {
-	l := &Lexer{input: input}
-	l.readChar()
+func New(input string) *lexer {
+	i := iterator.New(input)
+	l := &lexer{iterator: i}
 	return l
 }
 
-// TODO add file name, line and pos and add it to token.type use io reader to save this data (for error display later on)
-// TODO move the logic in default case to own switch statement, maybe add floating number support
+func (l *lexer) NextToken() *token.Token {
+	ch, meta, err := l.iterator.Next()
+	if err != nil {
+		panic(err)
+	}
 
-func (l *Lexer) NextToken() token.Token {
-	var tok token.Token
+	ok, tok := l.isSymbolToken(ch, meta)
+	if ok {
+		return tok
+	}
+	ok, tok = l.isStringLiteral(ch, meta)
+	if ok {
+		return tok
+	}
 
-	l.eatWhitespace()
+	return nil
+}
 
-	switch l.ch {
+// todo default rune type is 0, EOL should be given different symbol in iterator to differentiate
+
+func (l *lexer) isSymbolToken(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
+	newToken := curriedSymbolTokenConstructor(meta)
+
+	switch ch {
 	case '=':
-		if ok, result := l.isTwoSymbol(token.EQ, "=="); ok {
-			tok = *result
-		} else {
-			tok = token.New(token.ASSIGN, l.ch)
+		switch {
+		case l.isMultiSymbolToken('='):
+			return true, newToken(token.EQ)
+		default:
+			return true, newToken(token.ASSIGN)
 		}
-	case ';':
-		tok = token.New(token.SEMICOLON, l.ch)
-	case '\n':
-		tok = token.New(token.NEWLINE, l.ch)
-	case '\r':
-		tok = token.New(token.EOL, l.ch)
-	case '(':
-		tok = token.New(token.LPAREN, l.ch)
-	case ')':
-		tok = token.New(token.RPAREN, l.ch)
-	case ',':
-		tok = token.New(token.COMMA, l.ch)
 	case '+':
-		tok = token.New(token.PLUS, l.ch)
+		return true, newToken(token.PLUS)
 	case '-':
-		tok = token.New(token.MINUS, l.ch)
-	case '*':
-		tok = token.New(token.ASTERISK, l.ch)
-	case '/':
-		tok = token.New(token.SLASH, l.ch)
-	case '<':
-		tok = token.New(token.LT, l.ch)
-	case '>':
-		tok = token.New(token.GT, l.ch)
+		return true, newToken(token.MINUS)
 	case '!':
-		if ok, result := l.isTwoSymbol(token.NOT_EQ, "!="); ok {
-			tok = *result
-		} else {
-			tok = token.New(token.BANG, l.ch)
+		switch {
+		case l.isMultiSymbolToken('='):
+			return true, newToken(token.NOT_EQ)
+		default:
+			return true, newToken(token.BANG)
 		}
+	case '*':
+		return true, newToken(token.ASTERISK)
+	case '/':
+		return true, newToken(token.SLASH)
+	case '<':
+		return true, newToken(token.LT)
+	case '>':
+		return true, newToken(token.GT)
+	case ',':
+		return true, newToken(token.COMMA)
+	case ';':
+		return true, newToken(token.SEMICOLON)
+	case '\n':
+		return true, newToken(token.NEWLINE)
+	case '(':
+		return true, newToken(token.LBRACE)
+	case ')':
+		return true, newToken(token.RBRACE)
 	case '{':
-		tok = token.New(token.LBRACE, l.ch)
+		return true, newToken(token.LBRACE)
 	case '}':
-		tok = token.New(token.RBRACE, l.ch)
-	case 0:
-		tok.Literal = ""
-		tok.Type = token.EOF
+		return true, newToken(token.RBRACE)
 	default:
-		if token.IsLetter(l.ch) {
-			tok.Literal = l.readIdentifier()
-			tok.Type = token.LookupIdentType(tok.Literal)
-			return tok
-		} else if token.IsDigit(l.ch) {
-			tok.Literal = l.readNumber()
-			tok.Type = token.INT
-			return tok
-		} else {
-			tok = token.New(token.ILLEGAL, l.ch)
+		return false, newToken(token.UNKNOWN)
+	}
+}
+
+// todo peeking can go out of bounds
+
+func (l *lexer) isStringLiteral(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
+	if !unicode.IsLetter(ch) {
+		return false, token.NewSymbol(token.UNKNOWN, meta.RelPos, meta.Line)
+	}
+
+	literal := make([]rune, 0)
+	literal = append(literal, ch)
+
+	for l.iterator.HasNext() {
+		p, err := l.iterator.Peek()
+		if err != nil {
+			panic(err)
+		}
+
+		if unicode.IsSpace(p) {
+			break
+		}
+
+		next, _, err := l.iterator.Next()
+		if err != nil {
+			panic(err)
+		}
+
+		literal = append(literal, next)
+	}
+
+	return true, token.New(token.IDENT, string(literal), meta.RelPos, meta.Line)
+}
+
+//func (l *lexer) isNumericLiteralToken(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
+//
+//}
+
+func curriedTokenConstructor(meta *iterator.MetaData) func(t token.Type, literal string) *token.Token {
+	return func(t token.Type, literal string) *token.Token {
+		return token.New(t, literal, meta.RelPos, meta.Line)
+	}
+}
+
+func curriedSymbolTokenConstructor(meta *iterator.MetaData) func(t token.Type) *token.Token {
+	return func(t token.Type) *token.Token {
+		return token.NewSymbol(t, meta.RelPos, meta.Line)
+	}
+}
+
+// todo peeking can go out of bounds
+
+func (l *lexer) isMultiSymbolToken(chs ...rune) bool {
+	for i, ch := range chs {
+		p, err := l.iterator.PeekN(i)
+		if err != nil {
+			panic(err)
+		}
+		if p != ch {
+			return false
 		}
 	}
 
-	l.readChar()
-	return tok
+	l.skip(len(chs) - 1)
+	return true
 }
 
-func (l *Lexer) readChar() {
-	if l.readPosition >= len(l.input) {
-		l.ch = 0
-	} else {
-		l.ch = l.input[l.readPosition]
-	}
-
-	l.position = l.readPosition
-	l.readPosition++
-}
-
-func (l *Lexer) readIdentifier() string {
-	startPos := l.position
-	for token.IsLetter(l.ch) {
-		l.readChar()
-	}
-
-	return l.input[startPos:l.position]
-}
-
-func (l *Lexer) readNumber() string {
-	startPos := l.position
-	for token.IsDigit(l.ch) {
-		l.readChar()
-	}
-
-	return l.input[startPos:l.position]
-}
-
-func (l *Lexer) eatWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' {
-		l.readChar()
-	}
-}
-
-func (l *Lexer) peekChar() byte {
-	if l.readPosition >= len(l.input) {
-		return 0
-	} else {
-		return l.input[l.readPosition]
-	}
-}
-
-func (l *Lexer) isTwoSymbol(t token.Type, symbol string) (bool, *token.Token) {
-	if l.ch == symbol[0] && l.peekChar() == symbol[1] {
-		current := l.ch
-		l.readChar()
-
-		tok := &token.Token{
-			Type:    t,
-			Literal: string(current) + string(l.ch),
+func (l *lexer) skip(n int) {
+	for i := 0; i < n; i++ {
+		_, _, err := l.iterator.Next()
+		if err != nil {
+			panic(err)
 		}
-		return true, tok
 	}
-	return false, nil
 }
