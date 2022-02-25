@@ -156,13 +156,13 @@ func (test *Suite) TestNextToken() {
 		{token.INT, "10"},
 		{token.EQ, "=="},
 		{token.INT, "10"},
-		//{token.SEMICOLON, ";"},
-		//{token.NEWLINE, "\n"},
-		//{token.INT, "10"},
-		//{token.NOT_EQ, "!="},
-		//{token.INT, "199"},
-		//{token.SEMICOLON, ";"},
-		//{token.EOF, ""},
+		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.INT, "10"},
+		{token.NOT_EQ, "!="},
+		{token.INT, "199"},
+		{token.SEMICOLON, ";"},
+		//{token.EOF, ""},	// todo EOF handling? is used by parser...
 	}
 
 	l := New(input)

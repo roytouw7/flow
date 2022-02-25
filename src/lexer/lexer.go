@@ -39,7 +39,11 @@ func (l *lexer) NextToken() *token.Token {
 		return tok
 	}
 
-	return curriedSymbolTokenConstructor(meta)(token.ILLEGAL)
+	return createIllegalSymbolToken(meta)
+}
+
+func createIllegalSymbolToken(meta *iterator.MetaData) *token.Token {
+	return token.New(token.ILLEGAL, "???", meta.RelPos, meta.Line)
 }
 
 func (l *lexer) getNextNonWhiteSpaceCharacter() (rune, *iterator.MetaData, error) {
@@ -114,23 +118,9 @@ func (l *lexer) isStringLiteral(ch rune, meta *iterator.MetaData) (bool, *token.
 	literal := make([]rune, 0)
 	literal = append(literal, ch)
 
-	for l.iterator.HasNext() {
-		p, err := l.iterator.Peek()
-		if err != nil {
-			panic(err)
-		}
-
-		if !(unicode.IsLetter(p) || unicode.IsDigit(p)) {
-			break
-		}
-
-		next, _, err := l.iterator.Next()
-		if err != nil {
-			panic(err)
-		}
-
-		literal = append(literal, next)
-	}
+	l.appendLiteralUntil(&literal, func(ch rune) bool {
+		return !(unicode.IsLetter(ch) || unicode.IsDigit(ch))
+	})
 
 	return true, token.New(token.IDENT, string(literal), meta.RelPos, meta.Line)
 }
@@ -143,13 +133,21 @@ func (l *lexer) isNumericLiteralToken(ch rune, meta *iterator.MetaData) (bool, *
 	literal := make([]rune, 0)
 	literal = append(literal, ch)
 
+	l.appendLiteralUntil(&literal, func(ch rune) bool {
+		return !unicode.IsDigit(ch)
+	})
+
+	return true, token.New(token.INT, string(literal), meta.RelPos, meta.Line)
+}
+
+func (l *lexer) appendLiteralUntil(literal *[]rune, delimitFn func(ch rune) bool) {
 	for l.iterator.HasNext() {
 		p, err := l.iterator.Peek()
 		if err != nil {
 			panic(err)
 		}
 
-		if !unicode.IsDigit(p) {
+		if delimitFn(p) {
 			break
 		}
 
@@ -158,10 +156,8 @@ func (l *lexer) isNumericLiteralToken(ch rune, meta *iterator.MetaData) (bool, *
 			panic(err)
 		}
 
-		literal = append(literal, next)
+		*literal = append(*literal, next)
 	}
-
-	return true, token.New(token.INT, string(literal), meta.RelPos, meta.Line)
 }
 
 func curriedSymbolTokenConstructor(meta *iterator.MetaData) func(t token.Type) *token.Token {
@@ -169,8 +165,6 @@ func curriedSymbolTokenConstructor(meta *iterator.MetaData) func(t token.Type) *
 		return token.NewSymbol(t, meta.RelPos, meta.Line)
 	}
 }
-
-// todo peeking can go out of bounds
 
 func (l *lexer) isMultiSymbolToken(chs ...rune) bool {
 	for i, ch := range chs {
@@ -181,17 +175,11 @@ func (l *lexer) isMultiSymbolToken(chs ...rune) bool {
 		if p != ch {
 			return false
 		}
-	}
 
-	l.skip(len(chs))
-	return true
-}
-
-func (l *lexer) skip(n int) {
-	for i := 0; i < n; i++ {
-		_, _, err := l.iterator.Next()
-		if err != nil {
+		if _, _, err = l.iterator.Next(); err != nil {
 			panic(err)
 		}
 	}
+
+	return true
 }
