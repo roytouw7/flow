@@ -4,11 +4,16 @@ import (
 	"fmt"
 )
 
+// StringIterator is the interface that wraps logic around iterating over strings
+// Next returns the next smallest piece of string as a rune and increments its position
+// Peek returns the next smallest piece of string without incrementing position
+// HasNext safely checks if the next character can be retrieved or peeked
 type StringIterator interface {
 	Next() (rune, *MetaData, error)
 	Peek() (rune, error)
 	PeekN(n int) (rune, error)
 	HasNext() bool
+	HasNextN(n int) bool
 }
 
 type stringIterator struct {
@@ -19,7 +24,7 @@ type stringIterator struct {
 //todo refactor metadata out iterator, will be used in multiple places apart of iterator
 
 type MetaData struct {
-	pos, relPos, line int
+	Pos, RelPos, Line int
 }
 
 func New(sourceFile string) StringIterator {
@@ -89,7 +94,15 @@ func (iterator *stringIterator) incrementPosition() {
 }
 
 func (iterator *stringIterator) HasNext() bool {
-	return iterator.pos < len(iterator.source)
+	return iterator.hasNext(1)
+}
+
+func (iterator *stringIterator) HasNextN(n int) bool {
+	return iterator.hasNext(n)
+}
+
+func (iterator *stringIterator) hasNext(n int) bool {
+	return iterator.pos+n-1 < len(iterator.source)
 }
 
 func (iterator *stringIterator) Peek() (rune, error) {
@@ -108,17 +121,16 @@ func (iterator *stringIterator) peek(n int) (rune, error) {
 	// count newline characters "\r\n" as single increment
 	offset := iterator.pos
 	for i := 0; i < n; {
+		if offset+1 > len(iterator.source) {
+			return 0, fmt.Errorf("peek %d out of bounds", n)
+		}
 		if []rune(iterator.source[offset : offset+1])[0] != '\r' {
 			i++
 		}
 		offset++
 	}
 
-	if offset+1 > len(iterator.source) {
-		return 0, fmt.Errorf("peek %d out of bounds", n)
-	}
-
-	peekChar := []rune(iterator.source[offset : offset+1])[0]
+	peekChar := []rune(iterator.source[offset-1 : offset])[0]
 	if peekChar == '\r' {
 		peekChar = '\n'
 	}

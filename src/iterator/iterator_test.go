@@ -84,14 +84,14 @@ func (test *Suite) TestMetaData() {
 			test.T().Error(err)
 		}
 
-		if metaData.pos != t.pos {
-			test.T().Errorf("expected position to be %d, got %d", t.pos, metaData.pos)
+		if metaData.Pos != t.pos {
+			test.T().Errorf("expected position to be %d, got %d", t.pos, metaData.Pos)
 		}
-		if metaData.relPos != t.relPos {
-			test.T().Errorf("expected relative position to be %d, got %d", t.relPos, metaData.relPos)
+		if metaData.RelPos != t.relPos {
+			test.T().Errorf("expected relative position to be %d, got %d", t.relPos, metaData.RelPos)
 		}
-		if metaData.line != t.line {
-			test.T().Errorf("expected relative position to be %d, got %d", t.line, metaData.line)
+		if metaData.Line != t.line {
+			test.T().Errorf("expected relative position to be %d, got %d", t.line, metaData.Line)
 		}
 	}
 }
@@ -100,33 +100,42 @@ func (test *Suite) TestPeek() {
 	iterator := prepareIterator("test_assets/test_program.flow")
 
 	char, err := iterator.Peek()
-	test.expectChar(char, err, 'e')
+	test.expectChar(char, err, 'l')
 	char, err = iterator.PeekN(5)
-	test.expectChar(char, err, 'i')
-	char, err = iterator.PeekN(14)
+	test.expectChar(char, err, 'f')
+	char, err = iterator.PeekN(15)
 	test.expectChar(char, err, '\n')
-	char, err = iterator.PeekN(19)
+	char, err = iterator.PeekN(20)
 	test.expectChar(char, err, 'c')
 
 	_, _, _ = iterator.Next()
 	char, err = iterator.Peek()
-	test.expectChar(char, err, 't')
+	test.expectChar(char, err, 'e')
 	char, err = iterator.PeekN(5)
-	test.expectChar(char, err, 'v')
+	test.expectChar(char, err, 'i')
 
 	// move enough to be at second line of input
-	for i := 0; i < 13; i++ {
+	for i := 0; i < 14; i++ {
 		_, _, _ = iterator.Next()
 	}
 	char, err = iterator.Peek()
 	test.expectChar(char, err, 'x')
 
+}
+
+func (test *Suite) TestPeekBounds() {
+	iterator := New("12345")
+
 	// test out of bound peek handling
-	_, err = iterator.PeekN(11)
+	ch, err := iterator.PeekN(5)
+	if ch != '5' {
+		test.T().Errorf("unexpected peek character expected %c got %c", '5', ch)
+	}
 	if err != nil {
 		test.T().Errorf("unexpected out of bounds peek")
 	}
-	_, err = iterator.PeekN(12)
+
+	_, err = iterator.PeekN(6)
 	if err == nil {
 		test.T().Errorf("expected out of bounds error on peek but received nil")
 	}
@@ -139,6 +148,36 @@ func (test *Suite) TestPeek() {
 	if err == nil {
 		test.T().Errorf("expected out of bounds error on peek but received nil")
 	}
+}
+
+func (test *Suite) TestPeekBoundsMultiline() {
+	iterator := New("1234\r\n56")
+
+	// test out of bound peek handling
+	ch, err := iterator.PeekN(7)
+	if ch != '6' {
+		test.T().Errorf("unexpected peek character expected %c got %c", '6', ch)
+	}
+	if err != nil {
+		test.T().Errorf("unexpected out of bounds peek")
+	}
+
+	_, err = iterator.PeekN(8)
+	if err == nil {
+		test.T().Errorf("expected out of bounds error on peek but received nil")
+	}
+}
+
+func (test *Suite) TestPeekAfterNext() {
+	iterator := New("alfa beta")
+
+	ch, err := iterator.Peek()
+	test.expectChar(ch, err, 'a')
+
+	iterator.Next()
+
+	ch, err = iterator.Peek()
+	test.expectChar(ch, err, 'l')
 }
 
 func prepareIterator(sourceFile string) StringIterator {
