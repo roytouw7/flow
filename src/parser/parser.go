@@ -138,7 +138,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
-	case token.EOL, token.NEWLINE:
+	case token.NEWLINE:
 		return nil
 	case token.LET:
 		return p.parseLetStatement()
@@ -256,7 +256,7 @@ func (p *Parser) parseBooleanLiteral() ast.Expression {
 
 // TODO implement
 func (p *Parser) getExpression() {
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.EOL) {
+	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
 		p.nextToken()
 	}
 }

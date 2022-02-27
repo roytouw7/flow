@@ -17,6 +17,10 @@ func New(input string) *lexer {
 }
 
 func (l *lexer) NextToken() *token.Token {
+	if !l.iterator.HasNext() {
+		return createEOFSymbolToken()
+	}
+
 	ch, meta, err := l.getNextNonWhiteSpaceCharacter()
 	if err != nil {
 		panic(err)
@@ -44,6 +48,10 @@ func (l *lexer) NextToken() *token.Token {
 
 func createIllegalSymbolToken(meta *iterator.MetaData) *token.Token {
 	return token.New(token.ILLEGAL, "???", meta.RelPos, meta.Line)
+}
+
+func createEOFSymbolToken() *token.Token {
+	return token.New(token.EOF, token.EOF, -1, -1)
 }
 
 func (l *lexer) getNextNonWhiteSpaceCharacter() (rune, *iterator.MetaData, error) {
