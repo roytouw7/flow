@@ -1,7 +1,9 @@
 # Flow
 
 > TODO think about logic concerning joining sources<br>
-> TODO think about multi threading vs single threaded async of RxJS
+> TODO think about multi threading vs single threaded async of RxJS <br>
+> TODO think about implementing nullable types like Kotlin <br>
+> TODO think about design by contract like Eiffel, could be implemented in the typing perhaps? <br>
 
 Reactive programming language experimental outlines.
 
