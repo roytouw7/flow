@@ -6,6 +6,8 @@ import (
 	"unicode"
 )
 
+// todo metadata and token should become interfaces; place interface in consuming module; data struct adhering these interfaces in own module
+
 type lexer struct {
 	iterator iterator.StringIterator
 }

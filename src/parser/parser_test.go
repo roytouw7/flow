@@ -360,8 +360,8 @@ func (test *Suite) TestOperatorPrecedenceParsing() {
 	}
 }
 
-func checkParseErrors(t *testing.T, p *Parser) {
-	errors := p.errors
+func checkParseErrors(t *testing.T, p Parser) {
+	errors := p.Errors()
 
 	if len(errors) == 0 {
 		return
