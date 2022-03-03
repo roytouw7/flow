@@ -162,7 +162,7 @@ func (test *Suite) TestNextToken() {
 		{token.NOT_EQ, "!="},
 		{token.INT, "199"},
 		{token.SEMICOLON, ";"},
-		//{token.EOF, ""},	// todo EOF handling? is used by parser...
+		{token.EOF, "EOF"},
 	}
 
 	l := New(input)
