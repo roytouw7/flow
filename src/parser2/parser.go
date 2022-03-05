@@ -98,12 +98,30 @@ func (p *parser) nextToken() {
 	p.peekToken = p.l.NextToken()
 }
 
-func (p *parser) registerError(err error) {
-	p.errors = append(p.errors, err)
-}
-
 func unexpectedToken(expected token.Type, token *token.Token) error {
 	return fmt.Errorf("expected next token to be %s, got %s as %d:%d", expected, token.Type, token.Line, token.Pos)
+}
+
+func (p *parser) logOnFailure(fn func(t token.Type) bool, t token.Type, err error) bool {
+	if ok := fn(t); ok {
+		return true
+	}
+
+	p.registerError(err)
+	return false
+}
+
+func (p *parser) incrementOnMatch(t token.Type) bool {
+	if p.peekToken.Type == t {
+		p.nextToken()
+		return true
+	}
+
+	return false
+}
+
+func (p *parser) registerError(err error) {
+	p.errors = append(p.errors, err)
 }
 
 func (p *parser) parseStatement() ast.Statement {
@@ -122,19 +140,13 @@ func (p *parser) parseStatement() ast.Statement {
 func (p *parser) parseLetStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: *p.curToken}
 
-	if p.peekToken.Type == token.IDENT {
-		p.nextToken()
-	} else {
-		p.registerError(unexpectedToken(token.IDENT, p.peekToken))
+	if !p.logOnFailure(p.incrementOnMatch, token.IDENT, unexpectedToken(token.IDENT, p.peekToken)) {
 		return nil
 	}
 
 	stmt.Name = &ast.IdentifierLiteral{Token: *p.curToken, Value: p.curToken.Literal}
 
-	if p.peekToken.Type == token.ASSIGN {
-		p.nextToken()
-	} else {
-		p.registerError(unexpectedToken(token.ASSIGN, p.peekToken))
+	if !p.logOnFailure(p.incrementOnMatch, token.ASSIGN, unexpectedToken(token.ASSIGN, p.peekToken)) {
 		return nil
 	}
 
@@ -142,15 +154,21 @@ func (p *parser) parseLetStatement() *ast.LetStatement {
 
 	stmt.Value = p.parseExpression(LOWEST)
 
-	if p.peekToken.Type == token.SEMICOLON {
-		p.nextToken()
-	}
+	p.incrementOnMatch(token.SEMICOLON)
 
 	return stmt
 }
 
 func (p *parser) parseReturnStatement() *ast.ReturnStatement {
-	return nil
+	stmt := &ast.ReturnStatement{Token: *p.curToken}
+
+	p.nextToken()
+
+	stmt.ReturnValue = p.parseExpression(LOWEST)
+
+	p.incrementOnMatch(token.SEMICOLON)
+
+	return stmt
 }
 
 func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {

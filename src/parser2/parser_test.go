@@ -1,9 +1,7 @@
 package parser2
 
 import (
-	"Flow/src/lexer"
 	"github.com/stretchr/testify/suite"
-	"os"
 	"testing"
 )
 
@@ -15,23 +13,10 @@ func TestClientTestSuite(t *testing.T) {
 	suite.Run(t, new(Suite))
 }
 
+// todo add more complex assignment values
+
 func (test *Suite) TestLetStatements() {
-	data, err := os.ReadFile("test_assets/let_statements.flow")
-	if err != nil {
-		panic(err)
-	}
-
-	l := lexer.New(string(data))
-	p := New(l)
-
-	program := p.ParseProgram()
-	checkParseErrors(test.T(), p)
-	if program == nil {
-		test.Fail("ParseProgram() returned nil")
-		return
-	}
-
-	checkProgramLines(test.T(), program, 3)
+	program := createProgram(test.T(), "test_assets/let_statements.flow", 3)
 
 	tests := []struct {
 		expectedIdentifier string
@@ -47,5 +32,24 @@ func (test *Suite) TestLetStatements() {
 		if !testLetStatement(test.T(), stmt, tt.expectedIdentifier, tt.expectedValue) {
 			return
 		}
+	}
+}
+
+// todo add more complex expression returns
+
+func (test *Suite) TestReturnStatements() {
+	program := createProgram(test.T(), "test_assets/return_statements.flow", 3)
+
+	tests := []struct {
+		expectedReturnValue interface{}
+	}{
+		{5},
+		{10},
+		{993322},
+	}
+
+	for i, tt := range tests {
+		stmt := program.Statements[i]
+		testReturnStatement(test.T(), stmt, tt.expectedReturnValue)
 	}
 }

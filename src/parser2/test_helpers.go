@@ -2,9 +2,32 @@ package parser2
 
 import (
 	"Flow/src/ast"
+	"Flow/src/lexer"
 	"fmt"
+	"os"
 	"testing"
 )
+
+func createProgram(t *testing.T, fileName string, expectedLines int) *ast.Program {
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	l := lexer.New(string(data))
+	p := New(l)
+
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+		return nil
+	}
+
+	checkParseErrors(t, p)
+	checkProgramLines(t, program, expectedLines)
+
+	return program
+}
 
 func checkParseErrors(t *testing.T, p Parser) {
 	errors := p.Errors()
@@ -35,6 +58,7 @@ func testLetStatement(t *testing.T, s ast.Statement, name string, value interfac
 	letStmt, ok := s.(*ast.LetStatement)
 	if !ok {
 		t.Errorf("s not *ast.LetStatement; got=%T", s)
+		return false
 	}
 
 	if letStmt.Name.Value != name {
@@ -44,9 +68,27 @@ func testLetStatement(t *testing.T, s ast.Statement, name string, value interfac
 
 	if letStmt.Name.TokenLiteral() != name {
 		t.Errorf("s.Name not '%s'; got=%s", name, letStmt.Name)
+		return false
 	}
 
 	testLiteralExpression(t, letStmt.Value, value)
+
+	return true
+}
+
+func testReturnStatement(t *testing.T, s ast.Statement, value interface{}) bool {
+	if s.TokenLiteral() != "return" {
+		t.Errorf("s.TokenLiteral not 'let'; got=%T", s)
+		return false
+	}
+
+	returnStmt, ok := s.(*ast.ReturnStatement)
+	if !ok {
+		t.Errorf("s not *ast.ReturnStatement; got=%T", s)
+		return false
+	}
+
+	testLiteralExpression(t, returnStmt.ReturnValue, value)
 
 	return true
 }
