@@ -1,6 +1,7 @@
 package parser2
 
 import (
+	"Flow/src/ast"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -51,5 +52,27 @@ func (test *Suite) TestReturnStatements() {
 	for i, tt := range tests {
 		stmt := program.Statements[i]
 		testReturnStatement(test.T(), stmt, tt.expectedReturnValue)
+	}
+}
+
+func (test *Suite) TestIdentifierExpression() {
+	program := createProgram(test.T(), "test_assets/identifier_expressions.flow", 3)
+
+	tests := []struct {
+		expectedIdentifier interface{}
+	}{
+		{"foobar"},
+		{"django"},
+		{"lara777"},
+	}
+
+	for i, tt := range tests {
+		stmt, ok := program.Statements[i].(*ast.ExpressionStatement)
+
+		if !ok {
+			test.T().Errorf("program.Sttements[%d] is not ast.ExpressionStatement; got=%T", i, program.Statements[i])
+		}
+
+		testLiteralExpression(test.T(), stmt.Expression, tt.expectedIdentifier)
 	}
 }

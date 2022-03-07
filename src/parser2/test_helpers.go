@@ -148,7 +148,7 @@ func testBooleanLiteral(t *testing.T, bl ast.Expression, value bool) bool {
 func testIdentifier(t *testing.T, il ast.Expression, value string) bool {
 	ident, ok := il.(*ast.IdentifierLiteral)
 	if !ok {
-		t.Errorf("il not *ast.IntegerLiteral; got=%T", il)
+		t.Errorf("il not *ast.IdentifierLiteral; got=%T", il)
 		return false
 	}
 

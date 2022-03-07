@@ -21,6 +21,7 @@ import (
 // parse next as infixParseFunction
 // leftExp = parsedInfix; repeat until precedence of peeked token is higher; everytime making leftExp the result of the parsedInfix expression
 // else return leftExp
+// todo add ternary statement parsing
 
 const (
 	_ int = iota
@@ -32,6 +33,17 @@ const (
 	PREFIX
 	CALL
 )
+
+var precedences = map[token.Type]int{
+	token.EQ:       EQUALS,
+	token.NOT_EQ:   EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.SLASH:    PRODUCT,
+	token.ASTERISK: PRODUCT,
+}
 
 type Lexer interface {
 	NextToken() *token.Token
@@ -65,6 +77,9 @@ func New(l Lexer) Parser {
 
 	p.prefixParseFns = make(map[token.Type]prefixParseFn)
 	p.prefixParseFns[token.INT] = p.parseIntegerLiteral
+	p.prefixParseFns[token.IDENT] = p.parseIdentifier
+
+	p.infixParseFns = make(map[token.Type]infixParseFn)
 
 	// Set current and peek token
 	p.nextToken()
@@ -74,7 +89,7 @@ func New(l Lexer) Parser {
 }
 
 func (p *parser) Errors() []error {
-	return nil
+	return p.errors
 }
 
 func (p *parser) ParseProgram() *ast.Program {
@@ -172,7 +187,13 @@ func (p *parser) parseReturnStatement() *ast.ReturnStatement {
 }
 
 func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
-	return nil
+	stmt := &ast.ExpressionStatement{Token: *p.curToken}
+
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	p.incrementOnMatch(token.SEMICOLON)
+
+	return stmt
 }
 
 func (p *parser) parseExpression(precedence int) ast.Expression {
@@ -184,7 +205,17 @@ func (p *parser) parseExpression(precedence int) ast.Expression {
 
 	leftExp := prefix()
 
-	// todo check if it should be parse as infix expression and parse it if so
+	for p.peekToken.Type != token.SEMICOLON && precedence < precedences[p.peekToken.Type] {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			p.registerError(fmt.Errorf("no parse function found for token type %s", p.curToken.Type))
+			return leftExp
+		}
+
+		p.nextToken()
+
+		leftExp = infix(leftExp)
+	}
 
 	return leftExp
 
