@@ -134,7 +134,7 @@ func testBooleanLiteral(t *testing.T, bl ast.Expression, value bool) bool {
 		return false
 	}
 	if literal.Value != value {
-		t.Errorf("literal.Value not %t, got=%T", true, literal.Value)
+		t.Errorf("literal.Value not %t, got=%t", value, literal.Value)
 		return false
 	}
 	if literal.TokenLiteral() != fmt.Sprintf("%t", value) {

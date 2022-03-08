@@ -2,6 +2,7 @@ package parser2
 
 import (
 	"Flow/src/ast"
+	"Flow/src/token"
 	"fmt"
 	"strconv"
 )
@@ -21,4 +22,11 @@ func (p *parser) parseIntegerLiteral() ast.Expression {
 
 func (p *parser) parseIdentifier() ast.Expression {
 	return &ast.IdentifierLiteral{Token: *p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *parser) parseBooleanLiteral() ast.Expression {
+	return &ast.BooleanLiteral{
+		Token: *p.curToken,
+		Value: p.curToken.Type == token.TRUE,
+	}
 }
