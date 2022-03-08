@@ -80,6 +80,8 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.IDENT] = p.parseIdentifier
 	p.prefixParseFns[token.TRUE] = p.parseBooleanLiteral
 	p.prefixParseFns[token.FALSE] = p.parseBooleanLiteral
+	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
+	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 

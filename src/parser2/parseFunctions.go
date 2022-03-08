@@ -30,3 +30,16 @@ func (p *parser) parseBooleanLiteral() ast.Expression {
 		Value: p.curToken.Type == token.TRUE,
 	}
 }
+
+func (p *parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    *p.curToken,
+		Operator: p.curToken.Literal,
+	}
+
+	p.nextToken()
+
+	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
+}

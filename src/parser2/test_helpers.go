@@ -93,6 +93,26 @@ func testReturnStatement(t *testing.T, s ast.Statement, value interface{}) bool 
 	return true
 }
 
+func testPrefixExpression(t *testing.T, s ast.Expression, operator string, value interface{}) bool {
+	exp, ok := s.(*ast.PrefixExpression)
+	if !ok {
+		t.Errorf("statement not *ast.PrefixExpression; got=%T", s)
+		return false
+	}
+
+	if exp.Operator != operator {
+		t.Errorf("expected expression operator to be %s, got %s", operator, exp.Operator)
+		return false
+	}
+
+	if !testLiteralExpression(t, exp.Right, value) {
+		t.Errorf("unexpected expression value")
+		return false
+	}
+
+	return true
+}
+
 func testLiteralExpression(t *testing.T, exp ast.Expression, expected interface{}) bool {
 	switch v := expected.(type) {
 	case int:
