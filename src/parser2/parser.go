@@ -1,9 +1,10 @@
 package parser2
 
 import (
+	"fmt"
+
 	"Flow/src/ast"
 	"Flow/src/token"
-	"fmt"
 )
 
 // Parser input collection of *token.Token
@@ -82,8 +83,17 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.FALSE] = p.parseBooleanLiteral
 	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
+	//todo left parenthesis missing
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
+	p.infixParseFns[token.PLUS] = p.parseInfixExpression
+	p.infixParseFns[token.MINUS] = p.parseInfixExpression
+	p.infixParseFns[token.SLASH] = p.parseInfixExpression
+	p.infixParseFns[token.ASTERISK] = p.parseInfixExpression
+	p.infixParseFns[token.EQ] = p.parseInfixExpression
+	p.infixParseFns[token.NOT_EQ] = p.parseInfixExpression
+	p.infixParseFns[token.LT] = p.parseInfixExpression
+	p.infixParseFns[token.GT] = p.parseInfixExpression
 
 	// Set current and peek token
 	p.nextToken()
@@ -203,7 +213,7 @@ func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *parser) parseExpression(precedence int) ast.Expression {
 	prefix, ok := p.prefixParseFns[p.curToken.Type]
 	if !ok {
-		p.registerError(fmt.Errorf("no parse function found for token type %s", p.curToken.Type))
+		p.registerError(fmt.Errorf("no prefix parse function found for token type %s", p.curToken.Type))
 		return nil
 	}
 
@@ -212,7 +222,7 @@ func (p *parser) parseExpression(precedence int) ast.Expression {
 	for p.peekToken.Type != token.SEMICOLON && precedence < precedences[p.peekToken.Type] {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
-			p.registerError(fmt.Errorf("no parse function found for token type %s", p.curToken.Type))
+			p.registerError(fmt.Errorf("no infix parse function found for token type %s", p.curToken.Type))
 			return leftExp
 		}
 

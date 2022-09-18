@@ -5,19 +5,6 @@ import (
 	"Flow/src/token"
 )
 
-func (p *parser) parseStatement() ast.Statement {
-	switch p.curToken.Type {
-	case token.NEWLINE:
-		return nil
-	case token.LET:
-		return p.parseLetStatement()
-	case token.RETURN:
-		return p.parseReturnStatement()
-	default:
-		return p.parseExpressionStatement()
-	}
-}
-
 func (p *parser) parseLetStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: p.curToken}
 
@@ -31,7 +18,13 @@ func (p *parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	p.getExpression()
+	p.nextToken()
+
+	stmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
 
 	return stmt
 }
@@ -42,18 +35,6 @@ func (p *parser) parseReturnStatement() *ast.ReturnStatement {
 	p.nextToken()
 
 	p.getExpression()
-
-	return stmt
-}
-
-func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
-	stmt := &ast.ExpressionStatement{Token: p.curToken}
-
-	stmt.Expression = p.parseExpression(LOWEST)
-
-	if p.peekTokenIs(token.SEMICOLON) {
-		p.nextToken()
-	}
 
 	return stmt
 }

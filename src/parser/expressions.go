@@ -7,32 +7,8 @@ import (
 	"strconv"
 )
 
-func (p *parser) parseExpression(precedence int) ast.Expression {
-	prefix := p.prefixParseFns[p.curToken.Type]
-	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type)
-		return nil
-	}
-
-	leftExp := prefix()
-
-	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
-		infix := p.infixParseFns[p.peekToken.Type]
-		if infix == nil {
-			return leftExp
-		}
-
-		p.nextToken()
-
-		leftExp = infix(leftExp)
-	}
-
-	return leftExp
-}
-
-func (p *parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for %s found", t)
-	p.errors = append(p.errors, msg)
+func (p *parser) parseIdentifier() ast.Expression {
+	return &ast.IdentifierLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 func (p *parser) parseGroupedExpression() ast.Expression {

@@ -1,20 +1,25 @@
 package parser2
 
 import (
-	"Flow/src/ast"
-	"Flow/src/lexer"
 	"fmt"
 	"os"
 	"testing"
+
+	"Flow/src/ast"
+	"Flow/src/lexer"
 )
 
-func createProgram(t *testing.T, fileName string, expectedLines int) *ast.Program {
+func createProgramFromFile(t *testing.T, fileName string, expectedLines int) *ast.Program {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(err)
 	}
 
-	l := lexer.New(string(data))
+	return createProgram(t, string(data), expectedLines)
+}
+
+func createProgram(t *testing.T, input string, expectedLines int) *ast.Program {
+	l := lexer.New(input)
 	p := New(l)
 
 	program := p.ParseProgram()
@@ -107,6 +112,30 @@ func testPrefixExpression(t *testing.T, s ast.Expression, operator string, value
 
 	if !testLiteralExpression(t, exp.Right, value) {
 		t.Errorf("unexpected expression value")
+		return false
+	}
+
+	return true
+}
+
+func testInfixExpression(t *testing.T, exp ast.Expression, leftValue interface{}, operator string, rightValue interface{}) bool {
+	opExp, ok := exp.(*ast.InfixExpression)
+
+	if !ok {
+		t.Errorf("exp is not ast.InfixExpression, got=%T(%s)", exp, exp)
+		return false
+	}
+
+	if !testLiteralExpression(t, opExp.Left, leftValue) {
+		return false
+	}
+
+	if !testLiteralExpression(t, opExp.Right, rightValue) {
+		return false
+	}
+
+	if opExp.Operator != operator {
+		t.Errorf("exp.Operator is not '%s'; got=%q", operator, opExp.Operator)
 		return false
 	}
 

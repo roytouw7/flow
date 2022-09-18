@@ -1,10 +1,12 @@
 package lexer
 
 import (
-	"Flow/src/token"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"testing"
+
+	"Flow/src/token"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type Suite struct {
@@ -173,5 +175,19 @@ func (test *Suite) TestNextToken() {
 		test.Equalf(tok.Type, tt.expectedType, "tests[%d] - tokentype wrong. expected=%q, got=%q", i, tt.expectedType, tok.Type)
 		test.Equalf(tok.Literal, tt.expectedLiteral, "tests[%d] - literal wrong. expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
 
+	}
+}
+
+//todo why is this unused?
+func (test *Suite) TestEOF() {
+	l := New("0")
+
+	tt := []token.Type{token.INT, token.EOF, token.EOF, token.EOF}
+
+	for _, t := range tt {
+		result := l.NextToken()
+		if result.Type != t {
+			test.T().Errorf("expected token type %s got %T", t, result)
+		}
 	}
 }

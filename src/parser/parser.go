@@ -1,9 +1,10 @@
 package parser
 
 import (
+	"fmt"
+
 	"Flow/src/ast"
 	"Flow/src/token"
-	"fmt"
 )
 
 // todo precedences can be its own module?
@@ -77,6 +78,10 @@ func New(l Lexer) Parser {
 	return p
 }
 
+func (p *parser) Errors() []string {
+	return p.errors
+}
+
 func (p *parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
@@ -92,12 +97,58 @@ func (p *parser) ParseProgram() *ast.Program {
 	return program
 }
 
-func (p *parser) Errors() []string {
-	return p.errors
+func (p *parser) parseStatement() ast.Statement {
+	switch p.curToken.Type {
+	case token.NEWLINE:
+		return nil
+	case token.LET:
+		return p.parseLetStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
+	default:
+		return p.parseExpressionStatement()
+	}
 }
 
-func (p *parser) parseIdentifier() ast.Expression {
-	return &ast.IdentifierLiteral{Token: p.curToken, Value: p.curToken.Literal}
+func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+
+	leftExp := prefix()
+
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+
+		p.nextToken()
+
+		leftExp = infix(leftExp)
+	}
+
+	return leftExp
+}
+
+// todo should be a generic method on parser
+func (p *parser) noPrefixParseFnError(t token.Type) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
 }
 
 func (p *parser) parsePrefixExpression() ast.Expression {
@@ -150,7 +201,6 @@ func (p *parser) curPrecedence() int {
 	return LOWEST
 }
 
-// TODO implement
 func (p *parser) getExpression() {
 	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
 		p.nextToken()

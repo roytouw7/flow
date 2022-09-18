@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
-)
-
-var (
-	letters = []rune{'a', 'b', 'c', 'd', 'e'}
+	"Flow/src/lexer"
+	"Flow/src/parser2"
 )
 
 func main() {
@@ -19,9 +16,6 @@ func main() {
 	//fmt.Printf("Enter .flow file to read it as input instead!\n")
 	//repl.Start(os.Stdin, os.Stdout)
 
-	fmt.Println(string(letters[0:1]))
-}
-
-func hasNext(n int) bool {
-	return n-1 < len(letters)
+	p := parser2.New(lexer.New("5 + 5;"))
+	p.ParseProgram()
 }

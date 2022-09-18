@@ -1,10 +1,11 @@
 package parser2
 
 import (
-	"Flow/src/ast"
-	"Flow/src/token"
 	"fmt"
 	"strconv"
+
+	"Flow/src/ast"
+	"Flow/src/token"
 )
 
 func (p *parser) parseIntegerLiteral() ast.Expression {
@@ -40,6 +41,20 @@ func (p *parser) parsePrefixExpression() ast.Expression {
 	p.nextToken()
 
 	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
+}
+
+func (p *parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Token:    *p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+
+	precedence := precedences[p.curToken.Type]
+	p.nextToken()
+	expression.Right = p.parseExpression(precedence)
 
 	return expression
 }

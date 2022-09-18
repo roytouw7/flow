@@ -423,3 +423,21 @@ list.
 ```
 (source ~int) => ...
 ```
+
+
+## Error handling
+```
+[0,1,2,3]
+    => multiply     // multiply by 0 results in a error
+    => add(5)       // add can't act upon error type
+    ~> printResult  // print might format expecting integers
+
+// posbile solution
+[0,1,2,3]
+    => multiply     // multiply by 0 results in a error; pass along in error monad? Does all values passing along get passed in monads then? Conveniance in this?
+    => add(5)       // error is passed passed add until the first function that accepts error type
+    => catch        // catch accepts the error type function, non error will be passed along untouched, to prevent it causing errors in printResult again dev can choose not to pass error further like filter.
+    ~> printResult  // all integer values end up here being printed, all error values never reach here
+
+// Something has to be constructed to quit the whole pipeline after 1 error, or after n errors or whatever case someone wants; can be implemented with a filter?
+```
