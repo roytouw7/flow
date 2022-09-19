@@ -32,6 +32,19 @@ func (p *parser) parseBooleanLiteral() ast.Expression {
 	}
 }
 
+func (p *parser) parseGroupedExpression() ast.Expression {
+	p.nextToken()
+
+	exp := p.parseExpression(LOWEST)
+
+	if p.peekToken.Type == token.RPAREN {
+		p.nextToken()
+		return exp
+	}
+
+	return nil
+}
+
 func (p *parser) parsePrefixExpression() ast.Expression {
 	expression := &ast.PrefixExpression{
 		Token:    *p.curToken,

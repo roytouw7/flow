@@ -18,6 +18,7 @@ func createProgramFromFile(t *testing.T, fileName string, expectedLines int) *as
 	return createProgram(t, string(data), expectedLines)
 }
 
+// TODO test cases should log which input line triggered the failing test somehow
 func createProgram(t *testing.T, input string, expectedLines int) *ast.Program {
 	l := lexer.New(input)
 	p := New(l)
@@ -50,7 +51,8 @@ func checkParseErrors(t *testing.T, p Parser) {
 
 func checkProgramLines(t *testing.T, p *ast.Program, expectedLines int) {
 	if len(p.Statements) != expectedLines {
-		t.Fatalf("program does not have the correct amount of   statements; got=%d expected=%d", len(p.Statements), expectedLines)
+		fmt.Println(p.String())
+		t.Fatalf("program does not have the correct amount of statements; got=%d expected=%d", len(p.Statements), expectedLines)
 	}
 }
 

@@ -83,7 +83,7 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.FALSE] = p.parseBooleanLiteral
 	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
-	//todo left parenthesis missing
+	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression

@@ -178,7 +178,6 @@ func (test *Suite) TestInfixExpressions() {
 	}
 }
 
-// todo complete test; if this one works it should be on the same level as the book again but refactored
 func (test *Suite) TestOperatorPrecedenceParsing() {
 	data, err := os.ReadFile("test_assets/precedence_tests.json")
 	if err != nil {
