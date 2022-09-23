@@ -2,7 +2,7 @@ package main
 
 import (
 	"Flow/src/lexer"
-	"Flow/src/parser2"
+	"Flow/src/parser"
 )
 
 func main() {
@@ -16,6 +16,6 @@ func main() {
 	//fmt.Printf("Enter .flow file to read it as input instead!\n")
 	//repl.Start(os.Stdin, os.Stdout)
 
-	p := parser2.New(lexer.New("5 + 5;"))
+	p := parser.New(lexer.New("5 + 5;"))
 	p.ParseProgram()
 }

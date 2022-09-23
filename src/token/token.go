@@ -16,6 +16,8 @@ const (
 	BANG     = "!"
 	ASTERISK = "*"
 	SLASH    = "/"
+	QUESTION = "?"
+	COLON    = ":"
 
 	EQ     = "=="
 	NOT_EQ = "!="

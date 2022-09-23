@@ -1,9 +1,10 @@
 package lexer
 
 import (
+	"unicode"
+
 	"Flow/src/iterator"
 	"Flow/src/token"
-	"unicode"
 )
 
 // todo metadata and token should become interfaces; place interface in consuming module; data struct adhering these interfaces in own module
@@ -105,6 +106,10 @@ func (l *lexer) isSymbolToken(ch rune, meta *iterator.MetaData) (bool, *token.To
 		return true, newToken(token.COMMA)
 	case ';':
 		return true, newToken(token.SEMICOLON)
+	case '?':
+		return true, newToken(token.QUESTION)
+	case ':':
+		return true, newToken(token.COLON)
 	case '\n':
 		return true, newToken(token.NEWLINE)
 	case '(':

@@ -1,4 +1,4 @@
-package parser2
+package parser
 
 import (
 	"fmt"
@@ -9,17 +9,17 @@ import (
 	"Flow/src/lexer"
 )
 
-func createProgramFromFile(t *testing.T, fileName string, expectedLines int) *ast.Program {
+func createProgramFromFile(t *testing.T, fileName string, expectedStatements int) *ast.Program {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(err)
 	}
 
-	return createProgram(t, string(data), expectedLines)
+	return createProgram(t, string(data), expectedStatements)
 }
 
 // TODO test cases should log which input line triggered the failing test somehow
-func createProgram(t *testing.T, input string, expectedLines int) *ast.Program {
+func createProgram(t *testing.T, input string, expectedStatements int) *ast.Program {
 	l := lexer.New(input)
 	p := New(l)
 
@@ -30,7 +30,7 @@ func createProgram(t *testing.T, input string, expectedLines int) *ast.Program {
 	}
 
 	checkParseErrors(t, p)
-	checkProgramLines(t, program, expectedLines)
+	checkProgramLines(t, program, expectedStatements)
 
 	return program
 }
@@ -211,6 +211,75 @@ func testIdentifier(t *testing.T, il ast.Expression, value string) bool {
 	if ident.TokenLiteral() != value {
 		t.Errorf("integ.TokenLiteral not %s; got=%s", value, ident.TokenLiteral())
 		return false
+	}
+
+	return true
+}
+
+func testIfExpression(t *testing.T, ie ast.Expression, condition string, consequenceStatements []string) bool {
+	ifExpression, ok := ie.(*ast.IfExpression)
+	if !ok {
+		t.Errorf("ie not *ast.IfExpression; got=%T", ie)
+		return false
+	}
+
+	if ifExpression.Condition.String() != condition {
+		t.Errorf("expected condition %s for expression; got=%s", condition, ifExpression.Condition.String())
+		return false
+	}
+
+	if ifExpression.Alternative != nil && len(ifExpression.Alternative.Statements) != 0 {
+		t.Errorf("expexted no alternative blockstatement in if expression")
+		return false
+	}
+
+	if !testBlockStatement(t, ifExpression.Consequence, consequenceStatements) {
+		return false
+	}
+
+	return true
+}
+
+func testIfElseExpression(t *testing.T, ie ast.Expression, condition string, consequenceStatements []string, alternativeStatements []string) bool {
+	ifExpression, ok := ie.(*ast.IfExpression)
+	if !ok {
+		t.Errorf("ie not *ast.IfExpression; got=%T", ie)
+		return false
+	}
+
+	if ifExpression.Condition.String() != condition {
+		t.Errorf("expected condition %s for expression; got=%s", condition, ifExpression.Condition.String())
+		return false
+	}
+
+	if !testBlockStatement(t, ifExpression.Consequence, consequenceStatements) {
+		return false
+	}
+
+	if !testBlockStatement(t, ifExpression.Alternative, alternativeStatements) {
+		return false
+	}
+
+	return true
+}
+
+func testBlockStatement(t *testing.T, bs ast.Statement, expectedStatements []string) bool {
+	blockStatement, ok := bs.(*ast.BlockStatement)
+	if !ok {
+		t.Errorf("bs not *ast.BlockStatement; got=%T", bs)
+		return false
+	}
+
+	if len(blockStatement.Statements) != len(expectedStatements) {
+		t.Errorf("expected %d statements in block statements; got=%d", len(blockStatement.Statements), len(expectedStatements))
+		return false
+	}
+
+	for i, stmt := range blockStatement.Statements {
+		if stmt.String() != expectedStatements[i] {
+			t.Errorf("expected statement %s; got=%s at index %d of BlockStatement", expectedStatements[i], stmt.String(), i)
+			return false
+		}
 	}
 
 	return true
