@@ -1,0 +1,94 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+!$Program = 'FF006E'
+!$Expression = 'E2E8CE'
+!$Statement = '17A398'
+!$Interface = 'FF7F11'
+!$Misc = 'AC3931'
+
+note as N1
+    Program consists of Statements
+    ExpressionStatement holds Expressions
+    Literals are Expressions
+    Everything is a Node
+end note
+
+struct Program #$Program {
+    []Statement
+}
+
+
+struct ExpressionStatement #$Statement {
+    Token
+    Expression
+}
+
+struct BlockStatement #$Statement {
+    Token
+    []Statement
+}
+
+struct IfExpression #$Expression {
+    Token
+    Condition
+    Consequence
+    Alternative
+}
+
+struct BooleanLiteral #$Expression {
+    Token
+    Value
+}
+
+struct ReturnStatement #$Statement {
+    Token
+    Expression
+}
+
+struct Token #$Misc {
+    Type
+    Literal
+    Pos
+    Line
+}
+
+interface Node #$Interface {
+}
+
+interface Statement #$Interface {
+    Node
+}
+
+interface Expression #$Interface {
+    Node
+}
+
+Program --* Statement
+
+Expression ..|> Node
+Statement ..|> Node
+
+ExpressionStatement --* Token
+ExpressionStatement ..|> Statement
+ExpressionStatement --* Expression
+
+BlockStatement --* Token
+BlockStatement --* Statement
+BlockStatement ..|> Statement
+
+IfExpression --* Token
+IfExpression --* BlockStatement
+IfExpression ..|> Expression
+
+BooleanLiteral --* Token
+BooleanLiteral ..|> Expression
+
+ReturnStatement --* Token
+ReturnStatement --* Expression
+ReturnStatement ..|> Statement
+
+hide methods
+hide empty fields
+
+@enduml
