@@ -1,0 +1,59 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+!$Connector = 'FF006E'
+skinparam ActivityBackgroundColor E2E8CE
+skinparam PartitionFontColor 17A398
+
+start
+    :createProgram;
+    :nextToken;
+    while (token is EOF) is (no)
+        group Parsing of statement
+            if (token is NEWLINE) then (yes)
+                :return nil;
+            elseif (token is LET) then (yes)
+                :parseLetStatement;
+                :return LetStatement;
+            elseif (token is RETURN) then (yes)
+                :parseReturnStatement;
+                :return ReturnStatement;
+            else
+                :parse ExpressionStatement;
+                group Parsing of expression
+                    if (prefixParseFn found for token) then (yes)
+                        :parse prefix expression;
+                        #$Connector:(A)
+                        detach
+
+                        #$Connector:(A)
+                        while (peekToken not SEMICOLON && \n precedence < peekToken precedence) is (yes)
+                            if (infixParseFn found for peekToken) then (yes)
+                                :nextToken;
+                                :parse infix expression;
+                                #$Connector:(B)
+                                detach
+
+                                #$Connector:(B)
+                                :return InfixExpression;
+                            else (no)
+                                :register no infixFn found error;
+                                :return PrefixExpression;
+                            endif
+                        endwhile (no)
+                    else (no)
+                        :return nil;
+                    endif
+                end group
+                :add Expression to ExpressionStatement;
+            endif
+        end group
+        if (Statement is not nil) then (yes)
+            :append statement to Program;
+        else (no)
+        endif
+        :nextToken;
+    endwhile (yes)
+    :return Program;
+stop
+
+@enduml
