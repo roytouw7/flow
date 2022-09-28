@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"Flow/src/lexer"
 	"Flow/src/parser"
 )
@@ -16,6 +19,9 @@ func main() {
 	//fmt.Printf("Enter .flow file to read it as input instead!\n")
 	//repl.Start(os.Stdin, os.Stdout)
 
-	p := parser.New(lexer.New("5 + 5;"))
-	p.ParseProgram()
+	p := parser.New(lexer.New("a > b ? a + b : b + 0;"))
+	program := p.ParseProgram()
+	fmt.Println(program.String())
+	data, _ := json.Marshal(program)
+	fmt.Println(string(data))
 }

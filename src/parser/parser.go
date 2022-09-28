@@ -58,9 +58,8 @@ type Parser interface {
 }
 
 type (
-	prefixParseFn  func() ast.Expression
-	infixParseFn   func(left ast.Expression) ast.Expression
-	ternaryParseFn func() ast.Expression
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(left ast.Expression) ast.Expression
 )
 
 type parser struct {
@@ -70,9 +69,8 @@ type parser struct {
 	curToken  *token.Token
 	peekToken *token.Token
 
-	prefixParseFns  map[token.Type]prefixParseFn
-	infixParseFns   map[token.Type]infixParseFn
-	ternaryParseFns map[token.Type]ternaryParseFn
+	prefixParseFns map[token.Type]prefixParseFn
+	infixParseFns  map[token.Type]infixParseFn
 }
 
 func New(l Lexer) Parser {
@@ -99,8 +97,7 @@ func New(l Lexer) Parser {
 	p.infixParseFns[token.NOT_EQ] = p.parseInfixExpression
 	p.infixParseFns[token.LT] = p.parseInfixExpression
 	p.infixParseFns[token.GT] = p.parseInfixExpression
-
-	//p.ternaryParseFns[token.QUESTION] = p.parseTernaryExpression // todo implement after if statement (next chapter in book)
+	p.infixParseFns[token.QUESTION] = p.parseTernaryExpression
 
 	// Set current and peek token
 	p.nextToken()
@@ -218,6 +215,13 @@ func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 	stmt.Expression = p.parseExpression(LOWEST)
 
+	// if ternary expression the statement token should be of the ternary expression instead of the token of the (partial)condition
+	// e.g. for expression: "a > b ? a : b;" token should be set to ? instead of IDENT
+	if stmt.Expression.TokenLiteral() == token.QUESTION {
+		tok := stmt.Token
+		stmt.Token = *token.New(token.QUESTION, token.QUESTION, tok.Pos, tok.Line)
+	}
+
 	p.incrementOnMatch(token.SEMICOLON)
 
 	return stmt
@@ -235,7 +239,7 @@ func (p *parser) parseExpression(precedence int) ast.Expression {
 	for p.peekToken.Type != token.SEMICOLON && precedence < precedences[p.peekToken.Type] {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
-			p.registerError(fmt.Errorf("no infix parse function found for token type %s", p.curToken.Type))
+			p.registerError(fmt.Errorf("no infix parse function found for peekToken type %s", p.peekToken.Type))
 			return leftExp
 		}
 

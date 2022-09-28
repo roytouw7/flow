@@ -259,3 +259,8 @@ func (test *Suite) TestIfElseExpressions() {
 		test.T().Errorf("not all program statements tested, expected=%d got=%d", len(program.Statements), counter)
 	}
 }
+
+// todo write tests for ternary expression parsing
+func (test *Suite) TestTernaryExpressions() {
+	createProgramFromFile(test.T(), "test_assets/ternary_expressions.flow", 2)
+}

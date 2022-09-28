@@ -7,10 +7,10 @@ import (
 )
 
 type TernaryExpression struct {
-	Token     token.Token
-	Condition Expression
-	TrueExp   *BlockStatement
-	FalseExp  *BlockStatement
+	Token       token.Token
+	Condition   Expression
+	Consequence Expression
+	Alternative Expression
 }
 
 func (te *TernaryExpression) expressionNode()      {}
@@ -21,9 +21,9 @@ func (te *TernaryExpression) String() string {
 
 	out.WriteString(te.Condition.String())
 	out.WriteString("?")
-	out.WriteString(te.TrueExp.String())
+	out.WriteString(te.Consequence.String())
 	out.WriteString(":")
-	out.WriteString(te.FalseExp.String())
+	out.WriteString(te.Alternative.String())
 
 	return out.String()
 }

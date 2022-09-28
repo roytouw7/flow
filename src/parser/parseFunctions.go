@@ -116,24 +116,22 @@ func (p *parser) parseIfExpression() ast.Expression {
 	return expression
 }
 
-//func (p *parser) parseTernaryExpression() ast.Expression {
-//	expression := &ast.TernaryExpression{
-//		Token: *p.curToken,
-//	}
-//
-//	precedence := precedences[p.curToken.Type]
-//	p.nextToken()
-//
-//	expression.Condition = p.parseExpression(precedence)
-//
-//	p.nextToken()
-//	expression.TrueExp = p.parseExpression(precedence)
-//
-//	p.nextToken()
-//	expression.FalseExp = p.parseExpression(precedence)
-//
-//	return expression
-//}
+func (p *parser) parseTernaryExpression(left ast.Expression) ast.Expression {
+	expression := &ast.TernaryExpression{
+		Token:     *p.curToken,
+		Condition: left,
+	}
+
+	p.nextToken()
+
+	expression.Consequence = p.parseExpression(TERNARY)
+
+	p.nextTokenN(2)
+
+	expression.Alternative = p.parseExpression(TERNARY)
+
+	return expression
+}
 
 func (p *parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: *p.curToken}
