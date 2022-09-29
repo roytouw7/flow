@@ -263,6 +263,31 @@ func testIfElseExpression(t *testing.T, ie ast.Expression, condition string, con
 	return true
 }
 
+func testTernaryExpression(t *testing.T, e ast.Expression, condition string, consequence string, alternative string) bool {
+	ternaryExpression, ok := e.(*ast.TernaryExpression)
+	if !ok {
+		t.Errorf("te not *ast.TernaryExpression; got=%T", e)
+		return false
+	}
+
+	if ternaryExpression.Condition.String() != condition {
+		t.Errorf("expected condition %s for expression; got=%s", condition, ternaryExpression.Condition.String())
+		return false
+	}
+
+	if ternaryExpression.Consequence.String() != consequence {
+		t.Errorf("expected consequence %s for expression; got=%s", consequence, ternaryExpression.Consequence.String())
+		return false
+	}
+
+	if ternaryExpression.Alternative.String() != alternative {
+		t.Errorf("expected alternative %s for expression; got=%s", alternative, ternaryExpression.Alternative.String())
+		return false
+	}
+
+	return true
+}
+
 func testBlockStatement(t *testing.T, bs ast.Statement, expectedStatements []string) bool {
 	blockStatement, ok := bs.(*ast.BlockStatement)
 	if !ok {

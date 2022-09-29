@@ -1,1 +1,2 @@
-4 != 3 ?
+a > b ? a + 1 : b + 2;
+true ? false : true;

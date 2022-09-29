@@ -260,7 +260,37 @@ func (test *Suite) TestIfElseExpressions() {
 	}
 }
 
-// todo write tests for ternary expression parsing
 func (test *Suite) TestTernaryExpressions() {
-	createProgramFromFile(test.T(), "test_assets/ternary_expressions.flow", 2)
+	program := createProgramFromFile(test.T(), "test_assets/ternary_expressions.flow", 2)
+
+	var tests = []struct {
+		condition   string
+		consequence string
+		alternative string
+	}{
+		{
+			condition:   "(a > b)",
+			consequence: "(a + 1)",
+			alternative: "(b + 2)",
+		}, {
+			condition:   "true",
+			consequence: "false",
+			alternative: "true",
+		},
+	}
+
+	var counter int
+	for i, tt := range tests {
+		es, ok := program.Statements[i].(*ast.ExpressionStatement)
+		if !ok {
+			test.T().Errorf("statement %d is no *ast.ExpressionStatement; got=%T", i, program.Statements[i])
+		}
+
+		testTernaryExpression(test.T(), es.Expression, tt.condition, tt.consequence, tt.alternative)
+		counter = i + 1
+	}
+
+	if counter != len(program.Statements) {
+		test.T().Errorf("not all program statements tested, expected=%d got=%d", len(program.Statements), counter)
+	}
 }
