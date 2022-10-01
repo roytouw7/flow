@@ -441,3 +441,10 @@ list.
 
 // Something has to be constructed to quit the whole pipeline after 1 error, or after n errors or whatever case someone wants; can be implemented with a filter?
 ```
+
+# Inspiration
+1. RxJs
+2. Svelte
+3. TypeScript
+4. Eiffel
+5. Go
