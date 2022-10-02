@@ -294,3 +294,37 @@ func (test *Suite) TestTernaryExpressions() {
 		test.T().Errorf("not all program statements tested, expected=%d got=%d", len(program.Statements), counter)
 	}
 }
+
+func (test *Suite) TestFunctionLiteralExpressions() {
+	program := createProgramFromFile(test.T(), "test_assets/function_literal_expressions.flow", 2)
+
+	var tests = []struct {
+		parameters []string
+		statements []string
+	}{
+		{
+			parameters: []string{},
+			statements: []string{"return 7;"},
+		},
+		{
+			parameters: []string{"a", "b"},
+			statements: []string{"return (a * b);"},
+		},
+	}
+
+	// todo a lot of repeating logic in these tests yet, and all the custom errors...
+	var counter int
+	for i, tt := range tests {
+		es, ok := program.Statements[i].(*ast.ExpressionStatement)
+		if !ok {
+			test.T().Errorf("statement %d is no *ast.ExpressionStatement; got=%T", i, program.Statements[i])
+		}
+
+		testFunctionLiteralExpression(test.T(), es.Expression, tt.parameters, tt.statements)
+		counter = i + 1
+	}
+
+	if counter != len(program.Statements) {
+		test.T().Errorf("not all program statements tested, expected=%d got=%d", len(program.Statements), counter)
+	}
+}

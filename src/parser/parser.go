@@ -1,28 +1,10 @@
 package parser
 
 import (
-	"fmt"
-
 	"Flow/src/ast"
+	"Flow/src/error"
 	"Flow/src/token"
 )
-
-// Parser input collection of *token.Token
-// Parser output *ast.Program consisting of a []ast.Statement
-// fetch next token
-// if EOF return program
-// parseStatement
-// if known statement parse it
-// else try parsing it as expression
-// getPrefixParseFunction
-// parsePrefixExpression
-// leftExp = parsed prefix expression
-// peek next token
-// if next has infixParseFunction
-// parse next as infixParseFunction
-// leftExp = parsedInfix; repeat until precedence of peeked token is higher; everytime making leftExp the result of the parsedInfix expression
-// else return leftExp
-// todo add ternary statement parsing
 
 const (
 	_ int = iota
@@ -54,7 +36,7 @@ type Lexer interface {
 
 type Parser interface {
 	ParseProgram() *ast.Program
-	Errors() []error
+	Errors() []cerr.ParseError
 }
 
 type (
@@ -65,7 +47,7 @@ type (
 type parser struct {
 	l Lexer
 
-	errors    []error
+	errors    []cerr.ParseError
 	curToken  *token.Token
 	peekToken *token.Token
 
@@ -87,6 +69,7 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
 	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
 	p.prefixParseFns[token.IF] = p.parseIfExpression
+	p.prefixParseFns[token.FUNCTION] = p.parseFunctionLiteralExpression
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression
@@ -106,7 +89,7 @@ func New(l Lexer) Parser {
 	return p
 }
 
-func (p *parser) Errors() []error {
+func (p *parser) Errors() []cerr.ParseError {
 	return p.errors
 }
 
@@ -137,11 +120,7 @@ func (p *parser) nextToken() {
 	p.peekToken = p.l.NextToken()
 }
 
-func unexpectedToken(expected token.Type, token *token.Token) error {
-	return fmt.Errorf("expected next token to be %s, got %s as %d:%d", expected, token.Type, token.Line, token.Pos)
-}
-
-func (p *parser) logOnFailure(fn func(t token.Type) bool, t token.Type, err error) bool {
+func (p *parser) logOnFailure(fn func(t token.Type) bool, t token.Type, err cerr.ParseError) bool { // todo this function only clutters the flow now, not clear what it does
 	if ok := fn(t); ok {
 		return true
 	}
@@ -159,7 +138,7 @@ func (p *parser) incrementOnMatch(t token.Type) bool {
 	return false
 }
 
-func (p *parser) registerError(err error) {
+func (p *parser) registerError(err cerr.ParseError) {
 	p.errors = append(p.errors, err)
 }
 
@@ -179,13 +158,13 @@ func (p *parser) parseStatement() ast.Statement {
 func (p *parser) parseLetStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: *p.curToken}
 
-	if !p.logOnFailure(p.incrementOnMatch, token.IDENT, unexpectedToken(token.IDENT, p.peekToken)) {
+	if !p.logOnFailure(p.incrementOnMatch, token.IDENT, cerr.UnexpectedTokenError(p.peekToken, token.IDENT, p.peekToken.Type)) { // todo pretty long line
 		return nil
 	}
 
 	stmt.Name = &ast.IdentifierLiteral{Token: *p.curToken, Value: p.curToken.Literal}
 
-	if !p.logOnFailure(p.incrementOnMatch, token.ASSIGN, unexpectedToken(token.ASSIGN, p.peekToken)) {
+	if !p.logOnFailure(p.incrementOnMatch, token.ASSIGN, cerr.UnexpectedTokenError(p.peekToken, token.ASSIGN, p.peekToken.Type)) {
 		return nil
 	}
 
@@ -217,7 +196,7 @@ func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 	// if ternary expression the statement token should be of the ternary expression instead of the token of the (partial)condition
 	// e.g. for expression: "a > b ? a : b;" token should be set to ? instead of IDENT
-	if stmt.Expression.TokenLiteral() == token.QUESTION {
+	if stmt.Expression != nil && stmt.Expression.TokenLiteral() == token.QUESTION {
 		tok := stmt.Token
 		stmt.Token = *token.New(token.QUESTION, token.QUESTION, tok.Pos, tok.Line)
 	}
@@ -230,7 +209,7 @@ func (p *parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *parser) parseExpression(precedence int) ast.Expression {
 	prefix, ok := p.prefixParseFns[p.curToken.Type]
 	if !ok {
-		p.registerError(fmt.Errorf("no prefix parse function found for token type %s", p.curToken.Type))
+		p.registerError(cerr.Wrap(cerr.MissingParseFnError(p.curToken, cerr.Prefix), "parseExpression"))
 		return nil
 	}
 
@@ -239,7 +218,7 @@ func (p *parser) parseExpression(precedence int) ast.Expression {
 	for p.peekToken.Type != token.SEMICOLON && precedence < precedences[p.peekToken.Type] {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
-			p.registerError(fmt.Errorf("no infix parse function found for peekToken type %s", p.peekToken.Type))
+			p.registerError(cerr.Wrap(cerr.MissingParseFnError(p.curToken, cerr.Infix), "parseExpression"))
 			return leftExp
 		}
 

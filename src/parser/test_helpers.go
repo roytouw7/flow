@@ -44,7 +44,7 @@ func checkParseErrors(t *testing.T, p Parser) {
 
 	t.Errorf("parser had %d errors", len(errors))
 	for _, err := range errors {
-		t.Errorf("parser error: %q", err)
+		t.Error(err)
 	}
 	t.FailNow()
 }
@@ -288,6 +288,31 @@ func testTernaryExpression(t *testing.T, e ast.Expression, condition string, con
 	return true
 }
 
+func testFunctionLiteralExpression(t *testing.T, f ast.Expression, expectedParameters, expectedStatements []string) bool {
+	functionLiteralExpression, ok := f.(*ast.FunctionLiteralExpression)
+	if !ok {
+		t.Errorf("f not *ast.FunctionLiteralExpression")
+		return false
+	}
+
+	if len(functionLiteralExpression.Parameters) != len(expectedParameters) {
+		t.Errorf("expected %d parameters got %d parameters", len(expectedParameters), len(functionLiteralExpression.Parameters))
+		return false
+	}
+
+	for i, param := range functionLiteralExpression.Parameters {
+		if param.String() != expectedParameters[i] {
+			t.Errorf("expected parameter with index %d to be %q got %q", i, expectedParameters[i], param.String())
+		}
+	}
+
+	if !testBlockStatement(t, functionLiteralExpression.Body, expectedStatements) {
+		return false
+	}
+
+	return true
+}
+
 func testBlockStatement(t *testing.T, bs ast.Statement, expectedStatements []string) bool {
 	blockStatement, ok := bs.(*ast.BlockStatement)
 	if !ok {
@@ -302,7 +327,7 @@ func testBlockStatement(t *testing.T, bs ast.Statement, expectedStatements []str
 
 	for i, stmt := range blockStatement.Statements {
 		if stmt.String() != expectedStatements[i] {
-			t.Errorf("expected statement %s; got=%s at index %d of BlockStatement", expectedStatements[i], stmt.String(), i)
+			t.Errorf("expected statement %q; got=%q at index %d of BlockStatement", expectedStatements[i], stmt.String(), i)
 			return false
 		}
 	}

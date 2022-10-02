@@ -30,7 +30,7 @@ const (
 )
 
 func UnexpectedCharError(tok *token.Token, expected string) ParseError {
-	msg := fmt.Sprintf("expected character %s, got %s instead", expected, tok.Literal) // TODO maybe %q instead of %s
+	msg := fmt.Sprintf("expected character %q, got %q instead", expected, tok.Literal)
 	return &parseError{
 		compileError{
 			msg, tok,
@@ -39,7 +39,7 @@ func UnexpectedCharError(tok *token.Token, expected string) ParseError {
 }
 
 func MissingParseFnError(tok *token.Token, kind ParseFnType) ParseError {
-	msg := fmt.Sprintf("no %s parse function found for token %s", kind, tok.Literal) // todo maybe use %q here to
+	msg := fmt.Sprintf("no %s parse function found for token %q", kind, tok.Literal)
 	return &parseError{
 		compileError{
 			msg, tok,
@@ -48,7 +48,7 @@ func MissingParseFnError(tok *token.Token, kind ParseFnType) ParseError {
 }
 
 func UnexpectedTokenError(tok *token.Token, expected token.Type, actual token.Type) ParseError {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead", expected, actual) // todo same %q
+	msg := fmt.Sprintf("expected token to be %q, got %q instead", expected, actual)
 	return &parseError{
 		compileError{
 			msg, tok,

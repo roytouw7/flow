@@ -1,19 +1,20 @@
 package parser
 
 import (
-	"fmt"
 	"strconv"
 
 	"Flow/src/ast"
+	"Flow/src/error"
 	"Flow/src/token"
 )
 
+// todo functions like these should return the error if something goes wrong to wrap the calling context, parse function should return error
 func (p *parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: *p.curToken}
 
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
 	if err != nil {
-		p.registerError(fmt.Errorf("could not parse %q as integer", p.curToken.Literal))
+		p.registerError(cerr.Wrap(cerr.ParseIntegerLiteralError(p.curToken), "parseIntegerLiteral"))
 		return nil
 	}
 
@@ -79,7 +80,8 @@ func (p *parser) parseIfExpression() ast.Expression {
 	}
 
 	if p.peekToken.Type != token.LPAREN {
-		p.registerError(fmt.Errorf("expected ( after if statement"))
+		err := cerr.UnexpectedCharError(p.peekToken, "(")
+		p.registerError(cerr.Wrap(err, "parseIfExpression", "following if statement declaration"))
 		return nil
 	}
 
@@ -87,14 +89,16 @@ func (p *parser) parseIfExpression() ast.Expression {
 	expression.Condition = p.parseExpression(LOWEST)
 
 	if p.peekToken.Type != token.RPAREN {
-		p.registerError(fmt.Errorf("expected ( after if statement"))
+		err := cerr.UnexpectedCharError(p.peekToken, ")")
+		p.registerError(cerr.Wrap(err, "parseIfExpression", "closing if statement condition"))
 		return nil
 	}
 
 	p.nextToken()
 
 	if p.peekToken.Type != token.LBRACE {
-		p.registerError(fmt.Errorf("expected { to open if statement body after condition declaration"))
+		err := cerr.UnexpectedCharError(p.peekToken, "{")
+		p.registerError(cerr.Wrap(err, "parseIfExpression", "following if statement condition"))
 		return nil
 	}
 
@@ -131,6 +135,75 @@ func (p *parser) parseTernaryExpression(left ast.Expression) ast.Expression {
 	expression.Alternative = p.parseExpression(TERNARY)
 
 	return expression
+}
+
+func (p *parser) parseFunctionLiteralExpression() ast.Expression {
+	lit := &ast.FunctionLiteralExpression{
+		Token: *p.curToken,
+	}
+
+	if p.peekToken.Type != token.LPAREN {
+		err := cerr.UnexpectedCharError(p.peekToken, token.LPAREN)
+		p.registerError(cerr.Wrap(err, "parseFunctionLiteralExpression", "following function literal declaration"))
+		return nil
+	}
+
+	parameters, err := p.parseFunctionParameters()
+	if err != nil {
+		p.registerError(cerr.Wrap(err, "parseFunctionLiteralExpression"))
+		return nil
+	}
+
+	lit.Parameters = parameters
+
+	p.nextToken()
+
+	if p.peekToken.Type != token.LBRACE {
+		err := cerr.UnexpectedCharError(p.peekToken, token.LBRACE)
+		p.registerError(cerr.Wrap(err, "parseFunctionLiteralExpression", "following function literal parameter list declaration"))
+		return nil
+	}
+
+	p.nextToken()
+
+	lit.Body = p.parseBlockStatement()
+
+	return lit
+}
+
+func (p *parser) parseFunctionParameters() ([]*ast.IdentifierLiteral, cerr.ParseError) {
+	var identifiers []*ast.IdentifierLiteral
+
+	p.nextToken()
+
+	if p.peekToken.Type == token.RPAREN {
+		return identifiers, nil
+	}
+
+	p.nextToken()
+
+	ident := &ast.IdentifierLiteral{
+		Token: *p.curToken,
+		Value: p.curToken.Literal,
+	}
+	identifiers = append(identifiers, ident)
+
+	for p.peekToken.Type == token.COMMA {
+		p.nextToken()
+		p.nextToken()
+		ident := &ast.IdentifierLiteral{
+			Token: *p.curToken,
+			Value: p.curToken.Literal,
+		}
+		identifiers = append(identifiers, ident)
+	}
+
+	if p.peekToken.Type != token.RPAREN {
+		err := cerr.UnexpectedCharError(p.peekToken, ")")
+		return nil, cerr.Wrap(err, "parseFunctionParameters")
+	}
+
+	return identifiers, nil
 }
 
 func (p *parser) parseBlockStatement() *ast.BlockStatement {

@@ -4,6 +4,8 @@ import (
 	"bytes"
 )
 
+// todo add pretty print in json format to node interface to be able to printthe ast in json without to much clutter or with options like line number
+
 type Node interface {
 	TokenLiteral() string
 	String() string

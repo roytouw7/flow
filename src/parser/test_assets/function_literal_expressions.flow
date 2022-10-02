@@ -1,0 +1,7 @@
+fn () {
+    return 7;
+}
+
+fn (a, b) {
+    return a * b;
+}
