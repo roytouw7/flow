@@ -1,0 +1,142 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+!$Error = 'FF006E'
+!$BaseError = 'E2E8CE'
+!$Statement = '17A398'
+!$Interface = 'FF7F11'
+!$Misc = 'AC3931'
+skinparam ClassStereotypeFontSize 14
+
+interface Error #$Error {
+    Error() string
+}
+
+package external #d0f4de {
+    note as n1
+        from elsewhere in compiler
+    endnote
+
+    interface Statement #$Interface {
+        Token*
+    }
+
+    struct Token #$Misc {
+        Type
+        line int
+        pos int
+        relPos int
+    }
+}
+
+interface baseErrorInterface #$Interface {
+    withoutContext() string*
+    setError(string)
+}
+
+struct baseError #$BaseError {
+    err string
+    withoutContext() string*
+    setError(string)
+}
+
+struct filePositionError #$BaseError {
+    baseError*
+    line int
+    pos int
+    relPos int
+    Error() string
+}
+
+struct tokenError #$BaseError {
+    baseError*
+    Token*
+    Error() string
+}
+
+struct statementError #$BaseError {
+    baseError*
+    Statement*
+    Error() string
+}
+
+package public #d0f4de {
+    interface EvaluationError #$Interface {
+        Error() string
+        evaluationError()
+        baseErrorInterface
+    }
+    interface ParseError #$Interface {
+        Error() string
+        parseError()
+        baseErrorInterface
+    }
+    interface IterationError #$Interface {
+        Error() string
+        iterationError()
+        baseErrorInterface
+    }
+    interface TestError #$Interface {
+        Error() string
+        testError()
+        baseErrorInterface
+    }
+    note as n2
+        All these interfaces are
+        exported trough several
+        constructor functions
+        e.g. MissingParseFnError()
+    endnote
+}
+
+struct parseError #$Statement {
+    tokenError*
+}
+
+struct iterationError #$Statement {
+    filePositionError*
+}
+
+struct evaluationError #$Statement {
+    statementError*
+}
+
+struct testError #$Statement {
+    tokenError*
+    filePositionError*
+    statementError*
+}
+
+Error <|-- filePositionError
+Error <|-- tokenError
+Error <|-- statementError
+
+baseErrorInterface <|-- baseError
+
+baseError *-- filePositionError
+baseError *-- tokenError
+baseError *-- statementError
+
+Token *-- Statement
+Token *-- tokenError
+tokenError *-- testError
+
+Statement *-- statementError
+statementError *-- testError
+
+tokenError *-- parseError
+
+filePositionError *-- iterationError
+filePositionError *-- testError
+
+statementError *-- evaluationError
+
+evaluationError --|> EvaluationError
+parseError --|> ParseError
+iterationError --|> IterationError
+testError --|> TestError
+
+hide empty methods
+hide empty fields
+
+@enduml
