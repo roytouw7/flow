@@ -6,9 +6,11 @@ import (
 	"Flow/src/token"
 )
 
+// todo should switch expected/actual order, like assert package expected first actual second
+
 type ParseError interface {
 	error
-	parseError() // to discriminate ParseError from other Errors when required
+	parseError() // to discriminate ParseError from other Errors
 	baseErrorInterface
 }
 
@@ -35,8 +37,11 @@ func MissingParseFnError(tok *token.Token, kind ParseFnType) ParseError {
 	return newParseError(msg, tok)
 }
 
-func UnexpectedTokenError(tok *token.Token, expected token.Type, actual token.Type) ParseError {
-	msg := fmt.Sprintf("expected token to be %q, got %q instead", expected, actual)
+// todo this error message is crap
+// todo e.g. 1:1: expected token to be "LET", got "LET" instead
+// todo also this is lexer logic not parser logic?
+func UnexpectedTokenError(tok *token.Token, expected token.Type) ParseError {
+	msg := fmt.Sprintf("expected token to be %q, got %q instead", expected, tok.Type)
 	return newParseError(msg, tok)
 }
 

@@ -4,8 +4,10 @@ import (
 	"os"
 	"testing"
 
+	cerr "Flow/src/error"
 	"Flow/src/token"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -172,13 +174,92 @@ func (test *Suite) TestNextToken() {
 	for i, tt := range tests {
 		tok := l.NextToken()
 
-		test.Equalf(tok.Type, tt.expectedType, "tests[%d] - tokentype wrong. expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		test.Equalf(tok.Literal, tt.expectedLiteral, "tests[%d] - literal wrong. expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		if tok.Type != tt.expectedType {
+			err := cerr.TestUnexpectedTokenError("TestPeekN", i, tok, tt.expectedType)
+			test.T().Error(err)
+		}
 
+		if tok.Literal != tt.expectedLiteral {
+			err := cerr.TestUnexpectedValueFor("TestPeekN", i, "literal", tok.Literal, tt.expectedLiteral)
+			test.T().Error(err)
+		}
 	}
 }
 
-//todo why is this unused?
+func (test *Suite) TestPeekN() {
+	data, err := os.ReadFile("test_assets/test_program.flow")
+	test.Nil(err)
+
+	var input = string(data)
+	l := New(input)
+
+	type expected struct {
+		ok    bool
+		token *token.Token
+	}
+
+	var tests = []struct {
+		input  int
+		output expected
+	}{
+		{
+			input:  0,
+			output: expected{false, nil},
+		},
+		{
+			input:  1,
+			output: expected{true, token.New(token.LET, "let", 1, 1)},
+		},
+		{
+			input:  2,
+			output: expected{true, token.New(token.IDENT, "five", 5, 1)},
+		},
+		{
+			input:  3,
+			output: expected{true, token.New(token.ASSIGN, "=", 10, 1)},
+		},
+		{
+			input:  4,
+			output: expected{true, token.New(token.INT, "5", 12, 1)},
+		},
+		{
+			input: 10,
+			output: expected{true, token.New(token.INT, "10", 11, 2)},
+		},
+		{
+			input: 20,
+			output: expected{true, token.New(token.COMMA, ",", 15, 4)},
+		},
+		{
+			input: 30,
+			output: expected{true, token.New(token.RBRACE, "}", 1, 6)},
+		},
+		{
+			input: 250,
+			output: expected{false, nil},
+		},
+	}
+
+	for i, tt := range tests {
+		ok, tok := l.PeekN(tt.input)
+		if tt.output.ok {
+			if !assert.Equal(test.T(), tt.output.token, tok) {
+				err := cerr.TestUnexpectedTokenError("TestPeekN", i, tok, tt.output.token.Type)
+				test.T().Error(err)
+			}
+			if ok != tt.output.ok {
+				err := cerr.TestUnexpectedValueFor("TestPeekN", i, "ok", ok, tt.output.ok)
+				test.T().Error(err)
+			}
+		} else {
+			if ok != false {
+				err := cerr.TestUnexpectedValueFor("TestPeekN", i, "ok", ok, false)
+				test.T().Error(err)
+			}
+		}
+	}
+}
+
 func (test *Suite) TestEOF() {
 	l := New("0")
 

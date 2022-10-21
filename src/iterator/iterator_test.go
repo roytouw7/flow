@@ -1,9 +1,13 @@
 package iterator
 
 import (
-	"github.com/stretchr/testify/suite"
 	"os"
 	"testing"
+
+	cerr "Flow/src/error"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type Suite struct {
@@ -180,6 +184,21 @@ func (test *Suite) TestPeekAfterNext() {
 	test.expectChar(ch, err, 'l')
 }
 
+func (test *Suite) TestCopy() {
+	iterator := New("alfa beta")
+	iterator.Next()
+
+	c, err := Copy(iterator)
+	assert.Nil(test.T(), err)
+	assert.Equal(test.T(), iterator, c)
+
+	c.Next()
+	c.Peek()
+	c.HasNext()
+
+	assert.NotEqual(test.T(), iterator, c)
+}
+
 func prepareIterator(sourceFile string) StringIterator {
 	data, err := os.ReadFile(sourceFile)
 	if err != nil {
@@ -190,7 +209,7 @@ func prepareIterator(sourceFile string) StringIterator {
 	return iterator
 }
 
-func (test *Suite) expectChar(char rune, err error, expected rune) bool {
+func (test *Suite) expectChar(char rune, err *cerr.IterationError, expected rune) bool {
 	if err != nil {
 		test.T().Error(err)
 		return false

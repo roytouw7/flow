@@ -1,10 +1,16 @@
 package cerr
 
-import "fmt"
+import (
+	"fmt"
+
+	"Flow/src/metadata"
+)
+
+// todo should become lexer error?
 
 type IterationError interface {
 	error
-	iterationError() // to discriminate IterationError from other Errors when required
+	iterationError() // to discriminate IterationError from other Errors
 	baseErrorInterface
 }
 
@@ -23,9 +29,12 @@ func newIterationError(msg string, source string, line, pos int) *iterationError
 	return &iterationError{
 		&filePositionError{
 			baseError: &baseError{msg},
-			line:      line,
-			pos:       pos,
-			source:    source,
+			metaData: &metadata.MetaData{
+				Source: source,
+				Pos:    pos,
+				RelPos: pos,
+				Line:   line,
+			},
 		},
 	}
 }

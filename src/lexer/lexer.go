@@ -3,10 +3,13 @@ package lexer
 import (
 	"unicode"
 
+	cerr "Flow/src/error"
 	"Flow/src/iterator"
+	"Flow/src/metadata"
 	"Flow/src/token"
 )
 
+// todo error handling should be handled a lot better, maybe like the parser? or just quit lexing in dump latest error? First is better probably halt before parsing and dump all collected errors.
 // todo metadata and token should become interfaces; place interface in consuming module; data struct adhering these interfaces in own module
 
 type lexer struct {
@@ -19,6 +22,9 @@ func New(input string) *lexer {
 	return l
 }
 
+// todo error handling, should we panic?
+
+// NextToken increment position by one token and return it
 func (l *lexer) NextToken() *token.Token {
 	if !l.iterator.HasNext() {
 		return createEOFSymbolToken()
@@ -29,6 +35,36 @@ func (l *lexer) NextToken() *token.Token {
 		panic(err)
 	}
 
+	return l.parseRuneAsToken(ch, meta)
+}
+
+// todo memoization possbile? should also create a benchmark to check performance gain
+// PeekN peek n tokens away without changing the current token positon
+func (l *lexer) PeekN(n int) (bool, *token.Token) {
+	if !l.iterator.HasNextN(n) || n < 1 {
+		return false, nil
+	}
+
+	// todo fit copy inside a method
+	lCopy := *l
+	iCopy, err := iterator.Copy(l.iterator)
+	if err != nil {
+		panic(err)
+	}
+
+	lCopy.iterator = iCopy
+
+	var tok *token.Token
+
+	for i := 0; i < n; i++ {
+		tok = lCopy.NextToken()
+	}
+
+	return true, tok
+}
+
+// parseRuneAsToken parse rune as token, will increment position on multi character tokens according to length
+func (l *lexer) parseRuneAsToken(ch rune, meta *metadata.MetaData) *token.Token {
 	ok, tok := l.isSymbolToken(ch, meta)
 	if ok {
 		return tok
@@ -49,7 +85,7 @@ func (l *lexer) NextToken() *token.Token {
 	return createIllegalSymbolToken(meta)
 }
 
-func createIllegalSymbolToken(meta *iterator.MetaData) *token.Token {
+func createIllegalSymbolToken(meta *metadata.MetaData) *token.Token {
 	return token.New(token.ILLEGAL, "???", meta.RelPos, meta.Line)
 }
 
@@ -57,7 +93,8 @@ func createEOFSymbolToken() *token.Token {
 	return token.New(token.EOF, token.EOF, -1, -1)
 }
 
-func (l *lexer) getNextNonWhiteSpaceCharacter() (rune, *iterator.MetaData, error) {
+// getNextNonWhiteSpaceCharacter keep incrementing position until non whitespace rune is found
+func (l *lexer) getNextNonWhiteSpaceCharacter() (rune, *metadata.MetaData, *cerr.IterationError) {
 	for {
 		ch, meta, err := l.iterator.Next()
 		if err != nil {
@@ -72,7 +109,7 @@ func (l *lexer) getNextNonWhiteSpaceCharacter() (rune, *iterator.MetaData, error
 
 // todo default rune type is 0, EOL should be given different symbol in iterator to differentiate
 
-func (l *lexer) isSymbolToken(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
+func (l *lexer) isSymbolToken(ch rune, meta *metadata.MetaData) (bool, *token.Token) {
 	newToken := curriedSymbolTokenConstructor(meta)
 
 	switch ch {
@@ -125,7 +162,7 @@ func (l *lexer) isSymbolToken(ch rune, meta *iterator.MetaData) (bool, *token.To
 	}
 }
 
-func (l *lexer) isStringLiteral(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
+func (l *lexer) isStringLiteral(ch rune, meta *metadata.MetaData) (bool, *token.Token) {
 	if !unicode.IsLetter(ch) {
 		return false, token.NewSymbol(token.UNKNOWN, meta.RelPos, meta.Line)
 	}
@@ -140,7 +177,7 @@ func (l *lexer) isStringLiteral(ch rune, meta *iterator.MetaData) (bool, *token.
 	return true, token.New(token.IDENT, string(literal), meta.RelPos, meta.Line)
 }
 
-func (l *lexer) isNumericLiteralToken(ch rune, meta *iterator.MetaData) (bool, *token.Token) {
+func (l *lexer) isNumericLiteralToken(ch rune, meta *metadata.MetaData) (bool, *token.Token) {
 	if !unicode.IsDigit(ch) {
 		return false, token.NewSymbol(token.UNKNOWN, meta.RelPos, meta.Line)
 	}
@@ -175,7 +212,7 @@ func (l *lexer) appendLiteralUntil(literal *[]rune, delimitFn func(ch rune) bool
 	}
 }
 
-func curriedSymbolTokenConstructor(meta *iterator.MetaData) func(t token.Type) *token.Token {
+func curriedSymbolTokenConstructor(meta *metadata.MetaData) func(t token.Type) *token.Token {
 	return func(t token.Type) *token.Token {
 		return token.NewSymbol(t, meta.RelPos, meta.Line)
 	}

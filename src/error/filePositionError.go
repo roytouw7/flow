@@ -1,14 +1,18 @@
 package cerr
 
-import "fmt"
+import (
+	"fmt"
+
+	"Flow/src/metadata"
+)
 
 type filePositionError struct {
 	*baseError
-	line, pos int
-	source    string
+	metaData *metadata.MetaData
 }
 
 func (f *filePositionError) Error() string {
-	fContext := fmt.Sprintf("%s:%d:%d", f.source, f.line, f.pos)
+	m :=f.metaData
+	fContext := fmt.Sprintf("%s:%d:%d", m.Source, m.Line, m.Pos)
 	return fmt.Sprintf("%s: %s", fContext, f.err)
 }
