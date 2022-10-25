@@ -18,7 +18,7 @@ func createProgramFromFile(t *testing.T, fileName string, expectedStatements int
 	return createProgram(t, string(data), expectedStatements)
 }
 
-// TODO test cases should log which input line triggered the failing test somehow
+// TODO test cases should log which input line triggered the failing test somehow, by returning the error to the test case and give control
 func createProgram(t *testing.T, input string, expectedStatements int) *ast.Program {
 	l := lexer.New(input)
 	p := New(l)
@@ -33,6 +33,22 @@ func createProgram(t *testing.T, input string, expectedStatements int) *ast.Prog
 	checkProgramLines(t, program, expectedStatements)
 
 	return program
+}
+
+func createParserFromFile(fileName string) *parser {
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	l := lexer.New(string(data))
+	p := New(l)
+
+	if parser, ok :=  p.(*parser); ok == true{
+		return parser
+	}
+
+	panic("could not construct parser")
 }
 
 func checkParseErrors(t *testing.T, p Parser) {

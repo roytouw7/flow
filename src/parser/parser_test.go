@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"Flow/src/ast"
+	"Flow/src/token"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -327,4 +329,34 @@ func (test *Suite) TestFunctionLiteralExpressions() {
 	if counter != len(program.Statements) {
 		test.T().Errorf("not all program statements tested, expected=%d got=%d", len(program.Statements), counter)
 	}
+}
+
+func (test *Suite) TestParseTemplateMatcher() {
+	p := createParserFromFile("test_assets/sample_program.flow")
+
+	x := func () ast.Expression {
+		return &ast.IdentifierLiteral{}
+	}
+
+	z := parseFnMatch[prefixParseFn]{
+		match: `\(.+=>`,
+		fn:    x,
+		limit: 10,
+	}
+
+	input := []parseFnMatch[prefixParseFn]{
+		z,
+	}
+
+	curToken := token.Token{
+		Type:    "(",
+		Literal: "(",
+		Pos:     0,
+		Line:    0,
+	}
+
+	result := parseFnTemplateMatch(&curToken, p.l, input)
+
+	assert.NotNil(test.T(), result)
+	assert.EqualValues(test.T(), x, result) // todo how can we check the received function is the right one
 }

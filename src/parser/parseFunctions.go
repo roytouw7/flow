@@ -33,6 +33,11 @@ func (p *parser) parseBooleanLiteral() ast.Expression {
 	}
 }
 
+//func (p *parser) parseLParenExpression() ast.Expression {
+//	// todo iterate to rParen and peek behind it, if => hand over to fn else to grouped expr
+//
+//}
+
 // todo add error logging
 func (p *parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
