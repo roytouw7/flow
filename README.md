@@ -4,6 +4,10 @@
 > TODO think about multi threading vs single threaded async of RxJS <br>
 > TODO think about implementing nullable types like Kotlin <br>
 > TODO think about design by contract like Eiffel, could be implemented in the typing perhaps? <br>
+> TODO think about native utility methods like map, filter, reduce, should be chainable en optimized(no multiple loops in execution with two maps or something) <br>
+> TODO think about a flexible generics system <br>
+> TODO think about arrays, they should be dynamic and implement the iterator interface so you can abstract them<br>
+> TODO should really have function overloading, miss this a lot in Go
 
 Reactive programming language experimental outlines.
 
