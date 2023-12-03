@@ -453,3 +453,25 @@ func (test *Suite) TestParseTemplateMatcher_NoMatch() {
 
 	assert.Nil(test.T(), result)
 }
+
+func (test *Suite) TestCallExpressionParsing() {
+	program := createProgramFromFile(test.T(), "test_assets/call_expressions.flow", 1)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		test.Failf("TestCallExpressionParsing", "stmt is not ast.ExpressionsStatement, got=%T", program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.CallExpression)
+	if !ok {
+		test.Failf("TestCallExpressionParsing", "expr is not ast.CallExpression, got=%T", stmt.Expression)
+	}
+
+	if !testIdentifier(test.T(), exp.Function, "add") {
+		return
+	}
+
+	if len(exp.Arguments) != 3 {
+		test.Failf("TestCallExpressionParsing", "number of arguments does not equal 3, got=%d", len(exp.Arguments))
+	}
+}

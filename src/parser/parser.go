@@ -30,6 +30,7 @@ var precedences = map[token.Type]int{
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
+	token.LPAREN:   CALL,
 }
 
 type Lexer interface {
@@ -83,6 +84,7 @@ func New(l Lexer) Parser {
 	p.infixParseFns[token.LT] = p.parseInfixExpression
 	p.infixParseFns[token.GT] = p.parseInfixExpression
 	p.infixParseFns[token.QUESTION] = p.parseTernaryExpression
+	p.infixParseFns[token.LPAREN] = p.parseCallExpression
 
 	// Set current and peek token
 	p.nextToken()

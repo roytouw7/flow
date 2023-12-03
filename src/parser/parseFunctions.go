@@ -258,3 +258,40 @@ func (p *parser) parseBlockStatement() *ast.BlockStatement {
 
 	return block
 }
+
+func (p *parser) parseCallExpression(function ast.Expression) ast.Expression {
+	exp := &ast.CallExpression{
+		Token:     *p.curToken,
+		Function:  function,
+		Arguments: p.parseCallArguments(),
+	}
+
+	return exp
+}
+
+func (p *parser) parseCallArguments() []ast.Expression {
+	var args []ast.Expression
+
+	if p.peekToken.Literal == token.RPAREN {
+		p.nextToken()
+		return args
+	}
+
+	p.nextToken()
+	args = append(args, p.parseExpression(LOWEST))
+
+	for p.peekToken.Literal == token.COMMA {
+		p.nextToken()
+		p.nextToken()
+		args = append(args, p.parseExpression(LOWEST))
+	}
+
+
+	if p.peekToken.Literal != token.RPAREN {
+		return nil // todo error handling
+	}
+
+	p.nextToken()
+
+	return args
+}
