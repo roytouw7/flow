@@ -70,10 +70,8 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.FALSE] = p.parseBooleanLiteral
 	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
-	//p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
 	p.prefixParseFns[token.IF] = p.parseIfExpression
-	//p.prefixParseFns[token.FUNCTION] = p.parseFunctionLiteralExpression
-	//p.prefixParseFns[token.LPAREN] = p.parseLParenExpression // todo maybe there should be a general multi matcher parse fn like match on ( ...)... => is arrow fn and (...)... grouped expr
+	p.prefixParseFns[token.LPAREN] = p.parseLParenExpression
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression

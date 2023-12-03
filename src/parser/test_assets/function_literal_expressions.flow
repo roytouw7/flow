@@ -1,7 +1,7 @@
-fn () {
+let fn = () => {
     return 7;
 }
 
-fn (a, b) {
+let fn = (a, b) => {
     return a * b;
 }

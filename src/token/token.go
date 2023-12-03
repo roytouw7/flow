@@ -21,6 +21,7 @@ const (
 
 	EQ     = "=="
 	NOT_EQ = "!="
+	ARROW  = "=>"
 
 	LT = "<"
 	GT = ">"
@@ -54,7 +55,6 @@ type Token struct {
 }
 
 var keywords = map[string]Type{
-	"fn":     FUNCTION,
 	"let":    LET,
 	"true":   TRUE,
 	"false":  FALSE,

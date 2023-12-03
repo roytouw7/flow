@@ -298,6 +298,10 @@ func (test *Suite) TestTernaryExpressions() {
 	}
 }
 
+func (test *Suite) TestGroupedExpressions() {
+	createProgramFromFile(test.T(), "test_assets/grouped_expressions.flow", 1)
+}
+
 func (test *Suite) TestFunctionLiteralExpressions() {
 	program := createProgramFromFile(test.T(), "test_assets/function_literal_expressions.flow", 2)
 
@@ -318,12 +322,12 @@ func (test *Suite) TestFunctionLiteralExpressions() {
 	// todo a lot of repeating logic in these tests yet, and all the custom errors...
 	var counter int
 	for i, tt := range tests {
-		es, ok := program.Statements[i].(*ast.ExpressionStatement)
+		es, ok := program.Statements[i].(*ast.LetStatement)
 		if !ok {
 			test.T().Errorf("statement %d is no *ast.ExpressionStatement; got=%T", i, program.Statements[i])
 		}
 
-		testFunctionLiteralExpression(test.T(), es.Expression, tt.parameters, tt.statements)
+		testFunctionLiteralExpression(test.T(), es.Value, tt.parameters, tt.statements)
 		counter = i + 1
 	}
 

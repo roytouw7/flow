@@ -33,10 +33,33 @@ func (p *parser) parseBooleanLiteral() ast.Expression {
 	}
 }
 
-//func (p *parser) parseLParenExpression() ast.Expression {
-//	// todo iterate to rParen and peek behind it, if => hand over to fn else to grouped expr
-//
-//}
+func (p *parser) parseLParenExpression() ast.Expression {
+	var (
+		arrowFunction prefixParseFn = p.parseFunctionLiteralExpression
+		groupedExpr   prefixParseFn = p.parseGroupedExpression
+	)
+
+	templates := []template{
+		{
+			match: arrowFnRegexp,
+			fn:    arrowFunction,
+			limit: nil,
+		},
+		{
+			match: groupedExprRegexp,
+			fn:    groupedExpr,
+			limit: nil,
+		},
+	}
+
+	parseFn := p.parseFnTemplateMatch(templates)
+
+	if fn, ok := parseFn.(prefixParseFn); ok {
+		return fn()
+	}
+
+	return nil
+}
 
 // todo add error logging
 func (p *parser) parseGroupedExpression() ast.Expression {
@@ -147,8 +170,8 @@ func (p *parser) parseFunctionLiteralExpression() ast.Expression {
 		Token: *p.curToken,
 	}
 
-	if p.peekToken.Type != token.LPAREN {
-		err := cerr.UnexpectedCharError(p.peekToken, token.LPAREN)
+	if p.curToken.Type != token.LPAREN {
+		err := cerr.UnexpectedCharError(p.curToken, token.LPAREN)
 		p.registerError(cerr.Wrap(err, "parseFunctionLiteralExpression", "following function literal declaration"))
 		return nil
 	}
@@ -160,6 +183,14 @@ func (p *parser) parseFunctionLiteralExpression() ast.Expression {
 	}
 
 	lit.Parameters = parameters
+
+	p.nextToken()
+
+	if p.peekToken.Type != token.ARROW {
+		err := cerr.UnexpectedCharError(p.peekToken, token.ARROW)
+		p.registerError(cerr.Wrap(err, "parseFunctionLiteralExpression", "following function literal parameter list declaration"))
+		return nil
+	}
 
 	p.nextToken()
 
@@ -179,7 +210,7 @@ func (p *parser) parseFunctionLiteralExpression() ast.Expression {
 func (p *parser) parseFunctionParameters() ([]*ast.IdentifierLiteral, cerr.ParseError) {
 	var identifiers []*ast.IdentifierLiteral
 
-	p.nextToken()
+	//p.nextToken()
 
 	if p.peekToken.Type == token.RPAREN {
 		return identifiers, nil

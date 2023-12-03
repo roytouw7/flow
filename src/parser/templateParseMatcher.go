@@ -8,8 +8,14 @@ import (
 	"Flow/src/token"
 )
 
+// todo these regexps should be built from atomic pieces
+const (
+	arrowFnRegexp = `\(.*\)\s*=>` // whitespaces now optional because they are removed upon lexing
+	groupedExprRegexp = `\(.+\)`
+)
+
 type (
-	prefixParseStatementFn func() ast.Statement
+	prefixParseStatementFn func() ast.Statement	// todo are these needed? Can't we use the types from the parser instead?
 	infixParseStatementFn  func(left ast.Expression) ast.Statement
 )
 

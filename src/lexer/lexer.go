@@ -117,6 +117,8 @@ func (l *lexer) isSymbolToken(ch rune, meta *metadata.MetaData) (bool, *token.To
 		switch {
 		case l.isMultiSymbolToken('='):
 			return true, newToken(token.EQ)
+		case l.isMultiSymbolToken('>'):
+			return true, newToken(token.ARROW)
 		default:
 			return true, newToken(token.ASSIGN)
 		}
