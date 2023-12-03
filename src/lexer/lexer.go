@@ -224,14 +224,14 @@ func (l *lexer) isMultiSymbolToken(chs ...rune) bool {
 	for i, ch := range chs {
 		p, err := l.iterator.PeekN(i + 1)
 		if err != nil {
-			panic(err)
+			panic(err) // todo error handling
 		}
 		if p != ch {
 			return false
 		}
 
 		if _, _, err = l.iterator.Next(); err != nil {
-			panic(err)
+			panic(err)	// todo error handling
 		}
 	}
 
