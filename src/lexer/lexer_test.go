@@ -91,12 +91,12 @@ func (test *Suite) TestNextToken() {
 		{token.LET, "let"},
 		{token.IDENT, "add"},
 		{token.ASSIGN, "="},
-		{token.FUNCTION, "fn"},
 		{token.LPAREN, "("},
 		{token.IDENT, "x"},
 		{token.COMMA, ","},
 		{token.IDENT, "y"},
 		{token.RPAREN, ")"},
+		{token.ARROW, "=>"},
 		{token.LBRACE, "{"},
 		{token.NEWLINE, "\n"},
 		{token.IDENT, "x"},
@@ -228,7 +228,7 @@ func (test *Suite) TestPeekN() {
 		},
 		{
 			input:  20,
-			output: expected{true, token.New(token.COMMA, ",", 15, 4)},
+			output: expected{true, token.New(token.IDENT, "y", 15, 4)},
 		},
 		{
 			input:  30,
