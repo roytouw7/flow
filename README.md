@@ -1,5 +1,7 @@
 # Flow
 
+![Generated image of a vibrant jellyfish floating in the ocean.](docs/jellyfish.webp)
+
 > TODO think about logic concerning joining sources<br>
 > TODO think about multi threading vs single threaded async of RxJS <br>
 > TODO think about implementing nullable types like Kotlin <br>
