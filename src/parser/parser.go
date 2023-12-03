@@ -3,11 +3,8 @@ package parser
 //todo should set up wire?
 
 import (
-	"regexp"
-
 	"Flow/src/ast"
 	"Flow/src/error"
-	"Flow/src/helpers"
 	"Flow/src/token"
 )
 
@@ -116,68 +113,6 @@ func (p *parser) ParseProgram() *ast.Program {
 	return program
 }
 
-type parseFn interface {
-	infixParseFn | prefixParseFn
-}
-
-type parseFnMatch[T parseFn] struct {
-	match string
-	fn    T
-	limit int
-}
-
-type PeekN interface {
-	PeekN(n int) (bool, *token.Token)
-}
-
-// when matching on regex
-// input will be a stream of tokens
-// if regex matches that as a string return the mapped parseFn
-// if no match before eof try next match
-// on last match if matchLastDefault is true return the mapped parseFn
-// on last match if matchLastDefault is false try matching the last parseFn
-// if last match does not match return false/nil or something
-// this will call peekN a lot of times, maybe accept a limit to in the parseFnMatch struct?
-// good to write a benchmark test for this when completed the functionality and unit test and then try to improve it
-// parseFnTemplateMatch matches a parse function on basis of a string match on source code
-func parseFnTemplateMatch[T parseFn](curToken *token.Token, peeker PeekN, matchers []parseFnMatch[T]) T {
-	for _, matcher := range matchers {
-		tokens := make([]*token.Token, 1)
-		tokens[0] = curToken
-
-		if matcher.limit > 0 { // todo must also create non-limit path
-			for i := 1; i < matcher.limit; i++ {
-				ok, peek := peeker.PeekN(i)
-				if !ok {
-					return nil
-				}
-
-				tokens = append(tokens, peek)
-
-				stringRepresentation := helpers.MapReduce(tokens,
-					func(in *token.Token) string { return in.Literal },
-					func(result string, char string) string {
-						if char != "\n" && char != " " {
-							return result + char
-						}
-						return result
-					}, "")
-
-				ok, err := regexp.MatchString(matcher.match, stringRepresentation)
-				if err != nil {
-					panic(err) // todo create appropriate error
-				}
-
-				if ok {
-					return matcher.fn
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 func (p *parser) nextTokenN(n int) {
 	for i := 0; i < n; i++ {
 		p.nextToken()
@@ -187,6 +122,18 @@ func (p *parser) nextTokenN(n int) {
 func (p *parser) nextToken() {
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
+}
+
+func (p *parser) peekTokenN(n int) (bool, *token.Token) {
+	if n < 0 {
+		return false, nil
+	}
+
+	if n == 1 {
+		return true, p.peekToken
+	}
+
+	return p.l.PeekN(n - 1)
 }
 
 func (p *parser) logOnFailure(fn func(t token.Type) bool, t token.Type, err cerr.ParseError) bool { // todo this function only clutters the flow now, not clear what it does

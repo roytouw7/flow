@@ -2,6 +2,7 @@ package parser
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -332,31 +333,119 @@ func (test *Suite) TestFunctionLiteralExpressions() {
 }
 
 func (test *Suite) TestParseTemplateMatcher() {
+	var parseFn prefixParseStatementFn
+
 	p := createParserFromFile("test_assets/sample_program.flow")
 
-	x := func () ast.Expression {
-		return &ast.IdentifierLiteral{}
+	parseFn = func() ast.Statement {
+		stmt := &ast.ExpressionStatement{
+			Token:      token.Token{},
+			Expression: nil,
+		}
+		return stmt
 	}
 
-	z := parseFnMatch[prefixParseFn]{
-		match: `\(.+=>`,
-		fn:    x,
-		limit: 10,
+	var limit = 10
+
+	input := []template{
+		{
+			match: `\(.*\)\s*=>`, // whitespace is stripped by parser now, but anything except for whitespace between is invalid
+			fn:    parseFn,
+			limit: &limit,
+		},
 	}
 
-	input := []parseFnMatch[prefixParseFn]{
-		z,
+	p.nextTokenN(3)
+
+	result := p.parseFnTemplateMatch(input)
+
+	prefixParseFn, ok := result.(prefixParseStatementFn)
+	if !ok {
+		assert.Failf(test.T(), "testParseTemplateMatcher test", "function is type %t, expected prefixParseFn", result)
 	}
 
-	curToken := token.Token{
-		Type:    "(",
-		Literal: "(",
-		Pos:     0,
-		Line:    0,
+	assert.NotNil(test.T(), prefixParseFn)
+	assert.Equal(test.T(), fmt.Sprintf("%p", parseFn), fmt.Sprintf("%p", prefixParseFn))
+}
+
+func (test *Suite) TestParseTemplateMatcher_TwoTemplates() {
+	var (
+		parseFnArrowFn     prefixParseStatementFn
+		parseFnGroupedExpr infixParseStatementFn
+	)
+
+	p := createParserFromFile("test_assets/grouped_expressions.flow")
+
+	parseFnArrowFn = func() ast.Statement {
+		stmt := &ast.ExpressionStatement{
+			Token:      token.Token{},
+			Expression: nil,
+		}
+		return stmt
 	}
 
-	result := parseFnTemplateMatch(&curToken, p.l, input)
+	parseFnGroupedExpr = func(left ast.Expression) ast.Statement {
+		stmt := &ast.ExpressionStatement{
+			Token:      token.Token{},
+			Expression: nil,
+		}
+		return stmt
+	}
 
-	assert.NotNil(test.T(), result)
-	assert.EqualValues(test.T(), x, result) // todo how can we check the received function is the right one
+	var limit = 10
+
+	input := []template{
+		{
+			match: `\(.*\)\s*=>`,
+			fn:    parseFnArrowFn,
+			limit: nil,
+		},
+		{
+			match: `\(.+\)`,
+			fn:    parseFnGroupedExpr,
+			limit: &limit,
+		},
+	}
+
+	p.nextTokenN(3)
+
+	result := p.parseFnTemplateMatch(input)
+
+	prefixParseFn, ok := result.(infixParseStatementFn)
+	if !ok {
+		assert.Failf(test.T(), "testParseTemplateMatcher test", "function is type %t, expected prefixParseFn", result)
+	}
+
+	assert.NotNil(test.T(), prefixParseFn)
+	assert.Equal(test.T(), fmt.Sprintf("%p", parseFnGroupedExpr), fmt.Sprintf("%p", prefixParseFn))
+}
+
+func (test *Suite) TestParseTemplateMatcher_NoMatch() {
+	var parseFn prefixParseStatementFn
+
+	p := createParserFromFile("test_assets/sample_program.flow")
+
+	parseFn = func() ast.Statement {
+		stmt := &ast.ExpressionStatement{
+			Token:      token.Token{},
+			Expression: nil,
+		}
+		return stmt
+	}
+
+	var limit = 10
+
+	input := []template{
+		{
+			match: `\[\]\[\]`, // not present in sample program
+			fn:    parseFn,
+			limit: &limit,
+		},
+	}
+
+	p.nextTokenN(3)
+
+	result := p.parseFnTemplateMatch(input)
+
+	assert.Nil(test.T(), result)
 }

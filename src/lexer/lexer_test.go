@@ -223,19 +223,19 @@ func (test *Suite) TestPeekN() {
 			output: expected{true, token.New(token.INT, "5", 12, 1)},
 		},
 		{
-			input: 10,
+			input:  10,
 			output: expected{true, token.New(token.INT, "10", 11, 2)},
 		},
 		{
-			input: 20,
+			input:  20,
 			output: expected{true, token.New(token.COMMA, ",", 15, 4)},
 		},
 		{
-			input: 30,
+			input:  30,
 			output: expected{true, token.New(token.RBRACE, "}", 1, 6)},
 		},
 		{
-			input: 250,
+			input:  250,
 			output: expected{false, nil},
 		},
 	}
