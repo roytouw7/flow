@@ -1,7 +1,15 @@
 # Flow
 
+![Generated image of a vibrant jellyfish floating in the ocean.](docs/jellyfish.webp)
+
 > TODO think about logic concerning joining sources<br>
-> TODO think about multi threading vs single threaded async of RxJS
+> TODO think about multi threading vs single threaded async of RxJS <br>
+> TODO think about implementing nullable types like Kotlin <br>
+> TODO think about design by contract like Eiffel, could be implemented in the typing perhaps? <br>
+> TODO think about native utility methods like map, filter, reduce, should be chainable en optimized(no multiple loops in execution with two maps or something) <br>
+> TODO think about a flexible generics system <br>
+> TODO think about arrays, they should be dynamic and implement the iterator interface so you can abstract them<br>
+> TODO should really have function overloading, miss this a lot in Go
 
 Reactive programming language experimental outlines.
 
@@ -421,3 +429,28 @@ list.
 ```
 (source ~int) => ...
 ```
+
+
+## Error handling
+```
+[0,1,2,3]
+    => multiply     // multiply by 0 results in a error
+    => add(5)       // add can't act upon error type
+    ~> printResult  // print might format expecting integers
+
+// posbile solution
+[0,1,2,3]
+    => multiply     // multiply by 0 results in a error; pass along in error monad? Does all values passing along get passed in monads then? Conveniance in this?
+    => add(5)       // error is passed passed add until the first function that accepts error type
+    => catch        // catch accepts the error type function, non error will be passed along untouched, to prevent it causing errors in printResult again dev can choose not to pass error further like filter.
+    ~> printResult  // all integer values end up here being printed, all error values never reach here
+
+// Something has to be constructed to quit the whole pipeline after 1 error, or after n errors or whatever case someone wants; can be implemented with a filter?
+```
+
+# Inspiration
+1. RxJs
+2. Svelte
+3. TypeScript
+4. Eiffel
+5. Go

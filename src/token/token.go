@@ -3,6 +3,7 @@ package token
 const (
 	ILLEGAL = "ILLEGAL"
 	EOF     = "EOF"
+	UNKNOWN = "???"
 
 	//	Identifiers and literals
 	IDENT = "IDENT"
@@ -15,9 +16,12 @@ const (
 	BANG     = "!"
 	ASTERISK = "*"
 	SLASH    = "/"
+	QUESTION = "?"
+	COLON    = ":"
 
 	EQ     = "=="
 	NOT_EQ = "!="
+	ARROW  = "=>"
 
 	LT = "<"
 	GT = ">"
@@ -25,8 +29,7 @@ const (
 	//	Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
-	EOL       = "eol"
-	NEWLINE   = "nwl"
+	NEWLINE   = "\n"
 
 	LPAREN = "("
 	RPAREN = ")"
@@ -46,12 +49,12 @@ const (
 type Type string
 
 type Token struct {
-	Type    Type
-	Literal string
+	Type      Type
+	Literal   string
+	Pos, Line int
 }
 
 var keywords = map[string]Type{
-	"fn":     FUNCTION,
 	"let":    LET,
 	"true":   TRUE,
 	"false":  FALSE,
@@ -69,17 +72,15 @@ func LookupIdentType(ident string) Type {
 	return IDENT
 }
 
-func New(t Type, ch byte) Token {
-	return Token{
+func New(t Type, ch string, pos, line int) *Token {
+	return &Token{
 		Type:    t,
-		Literal: string(ch),
+		Literal: ch,
+		Pos:     pos,
+		Line:    line,
 	}
 }
 
-func IsLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
-}
-
-func IsDigit(ch byte) bool {
-	return '0' <= ch && ch <= '9'
+func NewSymbol(t Type, pos, line int) *Token {
+	return New(t, string(t), pos, line) // type conversion actually required
 }

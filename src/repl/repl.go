@@ -1,13 +1,14 @@
 package repl
 
 import (
-	"Flow/src/lexer"
-	"Flow/src/token"
 	"bufio"
 	"fmt"
 	"io"
-	"os"
-	"regexp"
+
+	cerr "Flow/src/error"
+	"Flow/src/helpers"
+	"Flow/src/lexer"
+	"Flow/src/parser"
 )
 
 const PROMPT = ">> "
@@ -16,35 +17,47 @@ func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
 
 	for {
-		fmt.Printf(PROMPT)
+		fmt.Fprintf(out, PROMPT)
 		scanned := scanner.Scan()
 		if !scanned {
 			return
 		}
 
-		ok, err := regexp.Match(".*\\.flow", []byte(scanner.Text()))
-		checkErr(err)
-
-		var line string
-
-		if ok {
-			data, err := os.ReadFile("src/main/" + scanner.Text())
-			checkErr(err)
-			line = string(data)
-		} else {
-			line = scanner.Text()
-		}
-
+		line := scanner.Text()
 		l := lexer.New(line)
+		p := parser.New(l)
 
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			fmt.Printf("%+v\n", tok)
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			printParserErrors(out, helpers.Map(p.Errors(), func(i cerr.ParseError) string {
+				return i.Error()
+			}))
+			continue
 		}
+
+		io.WriteString(out, program.String())
+		io.WriteString(out, "\n")
 	}
 }
 
-func checkErr(err error) {
-	if err != nil {
-		panic(err)
+const MONKEY_FACE = `            __,__
+   .--.  .-"     "-.  .--.
+  / .. \/  .-. .-.  \/ .. \
+ | |  '|  /   Y   \  |'  | |
+ | \   \  \ 0 | 0 /  /   / |
+  \ '- ,\.-"""""""-./, -' /
+   ''-' /_   ^ ^   _\ '-''
+       |  \._   _./  |
+       \   \ '~' /   /
+        '._ '-=-' _.'
+           '-----'
+`
+
+func printParserErrors(out io.Writer, errors []string) {
+	io.WriteString(out, MONKEY_FACE)
+	io.WriteString(out, "Woops! We ran into some monkey business here!\n")
+	io.WriteString(out, " parser errors:\n")
+	for _, msg := range errors {
+		io.WriteString(out, "\t"+msg+"\n")
 	}
 }

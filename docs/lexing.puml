@@ -1,6 +1,0 @@
-@startuml
-'https://plantuml.com/sequence-diagram
-
-Input -> Lexer: Read source code
-Lexer -> Token
-@enduml

@@ -1,14 +1,15 @@
 package main
 
 import (
-	"Flow/src/repl"
 	"fmt"
 	"os"
-	user2 "os/user"
+	"os/user"
+
+	"Flow/src/repl"
 )
 
 func main() {
-	user, err := user2.Current()
+	user, err := user.Current()
 	if err != nil {
 		panic(err)
 	}
@@ -17,4 +18,10 @@ func main() {
 	fmt.Printf("Feel free to enter any commands!\n")
 	fmt.Printf("Enter .flow file to read it as input instead!\n")
 	repl.Start(os.Stdin, os.Stdout)
+
+	//p := parser.New(lexer.New(`fn (a, b) { c = a * b + 2; q = false; return c; }`))
+	//program := p.ParseProgram()
+	//fmt.Println(program.String())
+	//data, _ := json.Marshal(program)
+	//fmt.Println(string(data))
 }

@@ -1,0 +1,7 @@
+let fn = () => {
+    return 7;
+}
+
+let fn = (a, b) => {
+    return a * b;
+}
