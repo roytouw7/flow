@@ -15,11 +15,11 @@ func createProgramFromFile(t *testing.T, fileName string, expectedStatements int
 		panic(err)
 	}
 
-	return createProgram(t, string(data), expectedStatements)
+	return CreateProgram(t, string(data), expectedStatements)
 }
 
 // TODO test cases should log which input line triggered the failing test somehow, by returning the error to the test case and give control
-func createProgram(t *testing.T, input string, expectedStatements int) *ast.Program {
+func CreateProgram(t *testing.T, input string, expectedStatements int) *ast.Program {
 	l := lexer.New(input)
 	p := New(l)
 

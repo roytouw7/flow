@@ -197,7 +197,7 @@ func (test *Suite) TestOperatorPrecedenceParsing() {
 	}
 
 	for _, tt := range tests {
-		createProgram(test.T(), tt.Input, 1)
+		CreateProgram(test.T(), tt.Input, 1)
 	}
 }
 
