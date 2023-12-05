@@ -9,7 +9,7 @@ import (
 	"Flow/src/lexer"
 )
 
-func createProgramFromFile(t *testing.T, fileName string, expectedStatements int) *ast.Program {
+func CreateProgramFromFile(t *testing.T, fileName string, expectedStatements int) *ast.Program {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(err)

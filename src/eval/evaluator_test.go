@@ -121,6 +121,28 @@ func (test *Suite) TestBangOperator() {
 	}
 }
 
+func (test *Suite) TestReturnStatements() {
+	tests := []struct {
+		input    string
+		expected int64
+		stmts    int
+	}{
+		{"return 10;", 10, 1},
+		{"return 10; 9;", 10, 2},
+		{"return 2 * 5; 9;", 10, 2},
+		{"9; return 2 * 5; 9;", 10, 3},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(test.T(), tt.input, tt.stmts)
+		testIntegerObject(test.T(), evaluated, tt.expected)
+	}
+
+	program := parser.CreateProgramFromFile(test.T(), "./test_assets/return_statements.flow", 1)
+	result := Eval(program)
+	testIntegerObject(test.T(), result, 10)
+}
+
 func testEval(t *testing.T, input string, expectedStatements int) object.Object {
 	p := parser.CreateProgram(t, input, expectedStatements)
 	return Eval(p)

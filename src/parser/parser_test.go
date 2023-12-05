@@ -22,7 +22,7 @@ func TestClientTestSuite(t *testing.T) {
 }
 
 func (test *Suite) TestLetStatements() {
-	program := createProgramFromFile(test.T(), "test_assets/let_statements.flow", 5)
+	program := CreateProgramFromFile(test.T(), "test_assets/let_statements.flow", 5)
 
 	tests := []struct {
 		expectedIdentifier string
@@ -42,7 +42,7 @@ func (test *Suite) TestLetStatements() {
 }
 
 func (test *Suite) TestReturnStatements() {
-	program := createProgramFromFile(test.T(), "test_assets/return_statements.flow", 5)
+	program := CreateProgramFromFile(test.T(), "test_assets/return_statements.flow", 5)
 
 	tests := []struct {
 		expectedReturnValue interface{}
@@ -61,7 +61,7 @@ func (test *Suite) TestReturnStatements() {
 }
 
 func (test *Suite) TestIdentifierExpression() {
-	program := createProgramFromFile(test.T(), "test_assets/identifier_expressions.flow", 3)
+	program := CreateProgramFromFile(test.T(), "test_assets/identifier_expressions.flow", 3)
 
 	tests := []struct {
 		expectedIdentifier interface{}
@@ -83,7 +83,7 @@ func (test *Suite) TestIdentifierExpression() {
 }
 
 func (test *Suite) TestIntegerLiteralExpression() {
-	program := createProgramFromFile(test.T(), "test_assets/integer_literal_expressions.flow", 3)
+	program := CreateProgramFromFile(test.T(), "test_assets/integer_literal_expressions.flow", 3)
 
 	tests := []struct {
 		expectedReturnValue interface{}
@@ -105,7 +105,7 @@ func (test *Suite) TestIntegerLiteralExpression() {
 }
 
 func (test *Suite) TestBooleanLiteralExpression() {
-	program := createProgramFromFile(test.T(), "test_assets/boolean_literal_expressions.flow", 2)
+	program := CreateProgramFromFile(test.T(), "test_assets/boolean_literal_expressions.flow", 2)
 
 	tests := []struct {
 		expectedReturnValue interface{}
@@ -126,7 +126,7 @@ func (test *Suite) TestBooleanLiteralExpression() {
 }
 
 func (test *Suite) TestPrefixExpressions() {
-	program := createProgramFromFile(test.T(), "test_assets/prefix_expressions.flow", 4)
+	program := CreateProgramFromFile(test.T(), "test_assets/prefix_expressions.flow", 4)
 
 	tests := []struct {
 		expectedOperator string
@@ -150,7 +150,7 @@ func (test *Suite) TestPrefixExpressions() {
 }
 
 func (test *Suite) TestInfixExpressions() {
-	program := createProgramFromFile(test.T(), "test_assets/infix_expressions.flow", 11)
+	program := CreateProgramFromFile(test.T(), "test_assets/infix_expressions.flow", 11)
 
 	tests := []struct {
 		leftValue  interface{}
@@ -202,7 +202,7 @@ func (test *Suite) TestOperatorPrecedenceParsing() {
 }
 
 func (test *Suite) TestIfExpressions() {
-	program := createProgramFromFile(test.T(), "test_assets/if_expressions.flow", 2)
+	program := CreateProgramFromFile(test.T(), "test_assets/if_expressions.flow", 2)
 
 	var tests = []struct {
 		condition   string
@@ -228,7 +228,7 @@ func (test *Suite) TestIfExpressions() {
 }
 
 func (test *Suite) TestIfElseExpressions() {
-	program := createProgramFromFile(test.T(), "test_assets/if_else_expressions.flow", 2)
+	program := CreateProgramFromFile(test.T(), "test_assets/if_else_expressions.flow", 2)
 
 	var tests = []struct {
 		condition   string
@@ -264,7 +264,7 @@ func (test *Suite) TestIfElseExpressions() {
 }
 
 func (test *Suite) TestTernaryExpressions() {
-	program := createProgramFromFile(test.T(), "test_assets/ternary_expressions.flow", 2)
+	program := CreateProgramFromFile(test.T(), "test_assets/ternary_expressions.flow", 2)
 
 	var tests = []struct {
 		condition   string
@@ -299,11 +299,11 @@ func (test *Suite) TestTernaryExpressions() {
 }
 
 func (test *Suite) TestGroupedExpressions() {
-	createProgramFromFile(test.T(), "test_assets/grouped_expressions.flow", 1)
+	CreateProgramFromFile(test.T(), "test_assets/grouped_expressions.flow", 1)
 }
 
 func (test *Suite) TestFunctionLiteralExpressions() {
-	program := createProgramFromFile(test.T(), "test_assets/function_literal_expressions.flow", 2)
+	program := CreateProgramFromFile(test.T(), "test_assets/function_literal_expressions.flow", 2)
 
 	var tests = []struct {
 		parameters []string
@@ -455,7 +455,7 @@ func (test *Suite) TestParseTemplateMatcher_NoMatch() {
 }
 
 func (test *Suite) TestCallExpressionParsing() {
-	program := createProgramFromFile(test.T(), "test_assets/call_expressions.flow", 1)
+	program := CreateProgramFromFile(test.T(), "test_assets/call_expressions.flow", 1)
 
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
