@@ -47,8 +47,11 @@ func evalProgram(program *ast.Program) object.Object {
 	for _, statement := range program.Statements {
 		result = Eval(statement)
 
-		if returnValue, ok := result.(*object.ReturnValue); ok {
-			return returnValue.Value
+		switch result := result.(type) {
+		case *object.ReturnValue:
+			return result.Value
+		case *object.EvalError:
+			return result
 		}
 	}
 
@@ -76,8 +79,7 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	case "-":
 		return evalMinusPrefixOperatorExpression(right)
 	default:
-		panic(fmt.Sprintf("operator: \"%s\" not implemented!", operator))
-		return NULL
+		return newEvalErrorObject("unknown operator: %s%s", operator, right.Type())
 	}
 }
 
@@ -89,8 +91,10 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return nativeBoolToBooleanObject(left == right) // Only works with booleans because bool objects are reused so memory address matches
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
+	case left.Type() != right.Type():
+		return newEvalErrorObject("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	default:
-		panic(fmt.Sprintf("infix operator \"%s\" not implemented for operands of type left=%T and right=%T", operator, left, right))
+		return newEvalErrorObject("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -109,7 +113,7 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	if right.Type() != object.INTEGER_OBJ {
-		panic(fmt.Sprintf("expected Integer got=%T", right))
+		return newEvalErrorObject("unknown operator: -%s", right.Type())
 	}
 
 	value := right.(*object.Integer).Value
@@ -138,7 +142,7 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "!=":
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
-		panic(fmt.Sprintf("infix operator \"%s\" not implemented!", operator))
+		return newEvalErrorObject("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -152,6 +156,10 @@ func evalIfExpression(ie *ast.IfExpression) object.Object {
 	} else {
 		return NULL
 	}
+}
+
+func newEvalErrorObject(format string, a ...interface{}) *object.EvalError {
+	return &object.EvalError{Message: fmt.Sprintf(format, a...)}
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {

@@ -102,6 +102,34 @@ func (test *Suite) TestIfElseExpressions() {
 	}
 }
 
+func (test *Suite) TestErrorHandling() {
+	tests := []struct {
+		input    string
+		expected string
+		stmts    int
+	}{
+		{"5 + true;", "type mismatch: INTEGER + BOOLEAN", 1},
+		{"5 + true; 5;", "type mismatch: INTEGER + BOOLEAN", 2},
+		{"-true;", "unknown operator: -BOOLEAN", 1},
+		{"true + false;", "unknown operator: BOOLEAN + BOOLEAN", 1},
+		{"5; true + false; 5;", "unknown operator: BOOLEAN + BOOLEAN", 3},
+		{"if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN", 1},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(test.T(), tt.input, tt.stmts)
+
+		errObj, ok := evaluated.(*object.EvalError)
+		if !ok {
+			test.T().Errorf("no error object returned, got=%T (%+v)", evaluated, evaluated)
+		}
+
+		if errObj.Message != tt.expected {
+			test.T().Errorf("wrong error message, expected=%q, got=%q", tt.expected, errObj.Message)
+		}
+	}
+}
+
 func (test *Suite) TestBangOperator() {
 	tests := []struct {
 		input    string
