@@ -7,10 +7,10 @@ import (
 
 	cerr "Flow/src/error"
 	"Flow/src/eval"
-	"Flow/src/helpers"
 	"Flow/src/lexer"
 	"Flow/src/object"
 	"Flow/src/parser"
+	"Flow/src/utility/slice"
 )
 
 const PROMPT = ">> "
@@ -32,7 +32,7 @@ func Start(in io.Reader, out io.Writer) {
 
 		program := p.ParseProgram()
 		if len(p.Errors()) != 0 {
-			printParserErrors(out, helpers.Map(p.Errors(), func(i cerr.ParseError) string {
+			printParserErrors(out, slice.Map(p.Errors(), func(i cerr.ParseError) string {
 				return i.Error()
 			}))
 			continue

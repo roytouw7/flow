@@ -4,8 +4,8 @@ import (
 	"regexp"
 
 	"Flow/src/ast"
-	"Flow/src/helpers"
 	"Flow/src/token"
+	"Flow/src/utility/slice"
 )
 
 // todo these regexps should be built from atomic pieces
@@ -77,7 +77,7 @@ func (p *parser) tryMatchTokens(tokens []*token.Token, matchString string) bool 
 }
 
 func tokensToString(tokens []*token.Token) string {
-	return helpers.Reduce(tokens,
+	return slice.Reduce(tokens,
 		func(result string, tok *token.Token) string {
 			if tok.Literal != "\n" && tok.Literal != " " {
 				return result + tok.Literal

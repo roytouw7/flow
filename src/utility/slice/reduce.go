@@ -1,4 +1,4 @@
-package helpers
+package slice
 
 // Reduce reduces slice by function of T to U
 // seed U will be used as the seed of the output

@@ -1,4 +1,4 @@
-package helpers
+package slice
 
 // Map maps function over slice without mutating input
 func Map[T, U any](slice []T, fn func(i T) U) []U {
