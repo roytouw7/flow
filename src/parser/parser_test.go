@@ -475,3 +475,22 @@ func (test *Suite) TestCallExpressionParsing() {
 		test.Failf("TestCallExpressionParsing", "number of arguments does not equal 3, got=%d", len(exp.Arguments))
 	}
 }
+
+func (test *Suite) TestAssignmentExpressionParsing() {
+	program := CreateProgramFromFile(test.T(), "test_assets/assignment_expressions.flow", 3)
+	for _, stmt := range program.Statements {
+		exprStmt, ok := stmt.(*ast.ExpressionStatement)
+		if !ok {
+			test.Failf("TestAssignmentExpressionParsing", "stmt is not *ast.ExpressionStatement, got=%T", stmt)
+		}
+
+		infixExpr, ok := exprStmt.Expression.(*ast.InfixExpression)
+		if !ok {
+			test.Failf("TestAssignmentExpressionParsing", "expr is not *ast.InfixExpressions, got=%T", stmt)
+		}
+
+		if infixExpr.Operator != "=" {
+			test.Failf("TestAssignmentExpressionParsing", "expected infix expression operator to be \"=\" got %q", infixExpr.Operator)
+		}
+	}
+}

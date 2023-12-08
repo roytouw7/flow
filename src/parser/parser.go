@@ -11,6 +11,7 @@ import (
 const (
 	_ int = iota
 	LOWEST
+	ASSIGNMENT
 	TERNARY
 	EQUALS
 	LESSGREATER
@@ -31,6 +32,7 @@ var precedences = map[token.Type]int{
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
+	token.ASSIGN:   ASSIGNMENT,
 }
 
 type Lexer interface {
@@ -83,6 +85,7 @@ func New(l Lexer) Parser {
 	p.infixParseFns[token.NOT_EQ] = p.parseInfixExpression
 	p.infixParseFns[token.LT] = p.parseInfixExpression
 	p.infixParseFns[token.GT] = p.parseInfixExpression
+	p.infixParseFns[token.ASSIGN] = p.parseInfixExpression
 	p.infixParseFns[token.QUESTION] = p.parseTernaryExpression
 	p.infixParseFns[token.LPAREN] = p.parseCallExpression
 
