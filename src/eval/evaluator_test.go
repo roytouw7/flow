@@ -102,6 +102,24 @@ func (test *Suite) TestIfElseExpressions() {
 	}
 }
 
+func (test *Suite) TestLetStatements() {
+	tests := []struct {
+		input    string
+		expected int64
+		stmts    int
+	}{
+		{"let a = 5; a;", 5, 2},
+		{"let a = 5 * 5; a;", 25, 2},
+		{"let a = 5; let b = a; b;", 5, 3},
+		{"let a = 5; let b = a; let c = a + b + 5; c;", 15, 4},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(test.T(), tt.input, tt.stmts)
+		testIntegerObject(test.T(), evaluated, tt.expected)
+	}
+}
+
 func (test *Suite) TestErrorHandling() {
 	tests := []struct {
 		input    string
@@ -110,10 +128,11 @@ func (test *Suite) TestErrorHandling() {
 	}{
 		{"5 + true;", "type mismatch: INTEGER + BOOLEAN", 1},
 		{"5 + true; 5;", "type mismatch: INTEGER + BOOLEAN", 2},
-		{"-true;", "unknown operator: -BOOLEAN", 1},
+		{"-true;", "1:1: unknown operator: -BOOLEAN", 1},
 		{"true + false;", "unknown operator: BOOLEAN + BOOLEAN", 1},
 		{"5; true + false; 5;", "unknown operator: BOOLEAN + BOOLEAN", 3},
 		{"if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN", 1},
+		{"foobar", "identifier not found: foobar", 1},
 	}
 
 	for _, tt := range tests {
@@ -167,13 +186,15 @@ func (test *Suite) TestReturnStatements() {
 	}
 
 	program := parser.CreateProgramFromFile(test.T(), "./test_assets/return_statements.flow", 1)
-	result := Eval(program)
+	env := object.NewEnvironment()
+	result := Eval(program, env)
 	testIntegerObject(test.T(), result, 10)
 }
 
 func testEval(t *testing.T, input string, expectedStatements int) object.Object {
 	p := parser.CreateProgram(t, input, expectedStatements)
-	return Eval(p)
+	env := object.NewEnvironment()
+	return Eval(p, env)
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
