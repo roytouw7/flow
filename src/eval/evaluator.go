@@ -26,8 +26,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		right := Eval(node.Right, env)
 		return evalPrefixExpression(node.Operator, right, node.Token)
 	case *ast.InfixExpression:
-		left, right := Eval(node.Left, env), Eval(node.Right, env)
-		return evalInfixExpression(node.Operator, left, right)
+		//left, right := Eval(node.Left, env), Eval(node.Right, env)
+		return evalInfixExpression(node, env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.BooleanLiteral:
@@ -42,7 +42,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(val) {
 			return val
 		}
-		env.Set(node.Name.Value, val)
+		env.Set(node.Name.Value, val) // todo val is whatever evaluates to right expression
 	case *ast.IdentifierLiteral:
 		return evalIdentifier(node, env)
 	}
@@ -92,7 +92,12 @@ func evalPrefixExpression(operator string, right object.Object, token token.Toke
 	}
 }
 
-func evalInfixExpression(operator string, left, right object.Object) object.Object {
+func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
+	if node.Operator == "=" {
+		return evalAssignmentExpression(node, env)
+	}
+
+	operator, left, right := node.Operator, Eval(node.Left, env), Eval(node.Right, env)
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
@@ -105,6 +110,23 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	default:
 		return newEvalErrorObject("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
+	right := Eval(node.Right, env)
+
+	identifier, ok := node.Left.(*ast.IdentifierLiteral)
+	if !ok {
+		return newEvalErrorObject("can't assign to non-identifier type, got=%T", node.Left)
+	}
+
+	if _, ok = env.Get(identifier.Value); !ok {
+		return newEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
+	}
+
+	env.Set(identifier.Value, right)
+
+	return NULL
 }
 
 func evalIdentifier(node *ast.IdentifierLiteral, env *object.Environment) object.Object {

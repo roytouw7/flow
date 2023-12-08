@@ -112,6 +112,8 @@ func (test *Suite) TestLetStatements() {
 		{"let a = 5 * 5; a;", 25, 2},
 		{"let a = 5; let b = a; b;", 5, 3},
 		{"let a = 5; let b = a; let c = a + b + 5; c;", 15, 4},
+		{"let a = 5; a = 10; a", 10, 3},
+		{"let a = 10; let b = 7; a = a + b; a;", 17, 4},
 	}
 
 	for _, tt := range tests {
@@ -133,6 +135,8 @@ func (test *Suite) TestErrorHandling() {
 		{"5; true + false; 5;", "unknown operator: BOOLEAN + BOOLEAN", 3},
 		{"if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN", 1},
 		{"foobar", "identifier not found: foobar", 1},
+		{"7 = 9;", "can't assign to non-identifier type, got=*ast.IntegerLiteral", 1},
+		{"a = 9;", "identifier not found: \"a\"", 1},
 	}
 
 	for _, tt := range tests {
