@@ -40,7 +40,8 @@ func (test *Suite) TestEvalIntegerExpression() {
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(test.T(), tt.input, 1)
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, 1, env)
 		testIntegerObject(test.T(), evaluated, tt.expected)
 	}
 }
@@ -72,7 +73,8 @@ func (test *Suite) TestEvalBooleanExpression() {
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(test.T(), tt.input, 1)
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, 1, env)
 		testBooleanObject(test.T(), evaluated, tt.expected)
 	}
 }
@@ -92,7 +94,8 @@ func (test *Suite) TestIfElseExpressions() {
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(test.T(), tt.input, 1)
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, 1, env)
 		integer, ok := tt.expected.(int)
 		if ok {
 			testIntegerObject(test.T(), evaluated, int64(integer))
@@ -113,12 +116,13 @@ func (test *Suite) TestLetStatements() {
 		{"let a = 5; let b = a; b;", 5, 3},
 		{"let a = 5; let b = a; let c = a + b + 5; c;", 15, 4},
 		{"let a = 5; a = 10; a", 10, 3},
-		{"let a = 10; let b = 7; a = a + b; a;", 17, 4},
+		{"let a = 10; let b = 7; a = a + b; a;", 17, 4},	// todo fails on a; a is stored as an identifier referencing expression a, which causes an infinite loop, nice...
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(test.T(), tt.input, tt.stmts)
-		unwrapped := unwrapObservable(evaluated)
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
+		unwrapped := unwrapObservable(evaluated, env)
 
 		testIntegerObject(test.T(), *unwrapped, tt.expected)
 	}
@@ -139,10 +143,12 @@ func (test *Suite) TestErrorHandling() {
 		{"foobar", "identifier not found: foobar", 1},
 		{"7 = 9;", "can't assign to non-identifier type, got=*ast.IntegerLiteral", 1},
 		{"a = 9;", "identifier not found: \"a\"", 1},
+		{"let a = a;", "identifier not found: a", 1},
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(test.T(), tt.input, tt.stmts)
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
 
 		errObj, ok := evaluated.(*object.EvalError)
 		if !ok {
@@ -169,7 +175,8 @@ func (test *Suite) TestBangOperator() {
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(test.T(), tt.input, 1)
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, 1, env)
 		testBooleanObject(test.T(), evaluated, tt.expected)
 	}
 }
@@ -187,7 +194,8 @@ func (test *Suite) TestReturnStatements() {
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(test.T(), tt.input, tt.stmts)
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
 		testIntegerObject(test.T(), evaluated, tt.expected)
 	}
 
@@ -197,9 +205,8 @@ func (test *Suite) TestReturnStatements() {
 	testIntegerObject(test.T(), result, 10)
 }
 
-func testEval(t *testing.T, input string, expectedStatements int) object.Object {
+func testEval(t *testing.T, input string, expectedStatements int, env *object.Environment) object.Object {
 	p := parser.CreateProgram(t, input, expectedStatements)
-	env := object.NewEnvironment()
 	return Eval(p, env)
 }
 

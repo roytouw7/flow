@@ -1,0 +1,14 @@
+let a = 0;
+let b = a > 0;
+
+if(b) {
+    return 1;
+}
+
+a = 1;
+
+if(b) {
+    return 2;
+}
+
+return 3;

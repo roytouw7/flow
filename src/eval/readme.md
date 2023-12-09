@@ -39,3 +39,7 @@ a changes from 1 to 2:
 5. `b;` on usage we now evaluate `b` which holds the expression `a + 7`
 6. `a` is now `2` so `a + 7` evaluates to `9`
 7. `b` evaluates to `9`
+
+### Self Referencing Stack Overflow
+When assigning in a self referencing way like `a = a + 1;` due too lazy evaluation this would result in a stack overflow
+on evaluation of value. Because of this self references are eagerly evaluated and substituted for the current value.

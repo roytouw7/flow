@@ -8,19 +8,11 @@ import (
 	"Flow/src/token"
 )
 
-// todo we moeten dus ook achterhalen of een identifier bestaat uit een andere identifier...
-// todo iedere identifier die bestaat uit een andere identifier moet zichzelf registreren bij die andere identifier	#2.
-// todo iedere identifier moet een observable zijn	#1.
-// todo iedere assignment op een identifier moet de NotifyAll aanroepen met de change	#3.
-
 var (
 	NULL  = &object.Null{}
 	TRUE  = &object.Boolean{Value: true}
 	FALSE = &object.Boolean{Value: false}
 )
-
-// we now recursively evaluate every node of the program
-// but identifiers should be evaluated only when they are used? in for example if statements, and identifier calls?
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
@@ -126,7 +118,7 @@ func unwrapObservable(o object.Object, env *object.Environment) *object.Object {
 }
 
 func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.Object {
-	val := Eval(node.Value, env) // todo move to identifier evaluation
+	val := Eval(node.Value, env)
 	if isError(val) {
 		return val
 	}
@@ -160,10 +152,34 @@ func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment
 		observable.Value = &node.Right
 		observable.NotifyAll(&node.Right)
 	} else {
-		env.Set(identifier.Value, &node.Right)
+		substituted := substituteSelfReference(node.Right, identifier.Value, expr)
+		env.Set(identifier.Value, &substituted)
 	}
 
 	return NULL
+}
+
+// substituteSelfReference evaluation results in stack overflow if assignment is self referencing like a = a;
+func substituteSelfReference(node ast.Expression, self string, value *ast.Expression) ast.Expression {
+	switch node := node.(type) {
+	case *ast.IdentifierLiteral:
+		if node.Value == self {	// identifier is self referencing, substitute for the value
+			return *value
+		}
+		return node
+	case *ast.PrefixExpression:
+		right := substituteSelfReference(node.Right, self, value)
+		node.Right = right
+		return node
+	case *ast.InfixExpression:
+		left := substituteSelfReference(node.Left, self, value)
+		right := substituteSelfReference(node.Right, self, value)
+		node.Left = left
+		node.Right = right
+		return node
+	default:
+		return node
+	}
 }
 
 func evalIdentifier(node *ast.IdentifierLiteral, env *object.Environment) object.Object {
