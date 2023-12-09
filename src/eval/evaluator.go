@@ -100,7 +100,7 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 		return evalAssignmentExpression(node, env)
 	}
 
-	operator, left, right := node.Operator, *unwrapObservable(Eval(node.Left, env)), *unwrapObservable(Eval(node.Right, env))
+	operator, left, right := node.Operator, *unwrapObservable(Eval(node.Left, env), env), *unwrapObservable(Eval(node.Right, env), env)
 
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -116,60 +116,63 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	}
 }
 
-func unwrapObservable(o object.Object) *object.Object {
+func unwrapObservable(o object.Object, env *object.Environment) *object.Object {
 	if observable, ok := o.(*object.Observable); ok {
-		return unwrapObservable(observable.Value)
+		val := Eval(*observable.Value, env)
+		return unwrapObservable(val, env)
 	}
 
 	return &o
 }
 
 func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.Object {
-	val := Eval(node.Value, env) // todo but value can also be composition of observables? Not as easy as now
+	val := Eval(node.Value, env) // todo move to identifier evaluation
 	if isError(val) {
 		return val
 	}
 
-	observable := object.NewObservable(val)
+	observable := object.NewObservable(&node.Value)
 
 	// if value is an observable we register for future changes to update our own value
 	if o, ok := val.(*object.Observable); ok {
 		o.Register(observable)
 	}
 
-	env.Set(node.Name.Value, observable)
+	env.Set(node.Name.Value, &node.Value)
 
 	return NULL
 }
 
 func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
-	right := Eval(node.Right, env)
-
 	identifier, ok := node.Left.(*ast.IdentifierLiteral)
 	if !ok {
 		return newEvalErrorObject("can't assign to non-identifier type, got=%T", node.Left)
 	}
 
-	val, ok := env.Get(identifier.Value)
+	expr, ok := env.Get(identifier.Value)
 	if !ok {
 		return newEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
 	}
 
+	val := Eval(*expr, env)
+
 	if observable, ok := val.(*object.Observable); ok {
-		observable.Value = right
-		observable.NotifyAll(right)
+		observable.Value = &node.Right
+		observable.NotifyAll(&node.Right)
 	} else {
-		env.Set(identifier.Value, right)
+		env.Set(identifier.Value, &node.Right)
 	}
 
 	return NULL
 }
 
 func evalIdentifier(node *ast.IdentifierLiteral, env *object.Environment) object.Object {
-	val, ok := env.Get(node.Value)
+	expr, ok := env.Get(node.Value)
 	if !ok {
 		return newEvalErrorObject(fmt.Sprintf("identifier not found: %s", node.Value))
 	}
+
+	val := Eval(*expr, env)
 
 	return val
 }
