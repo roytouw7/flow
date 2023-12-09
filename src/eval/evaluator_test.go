@@ -118,7 +118,9 @@ func (test *Suite) TestLetStatements() {
 
 	for _, tt := range tests {
 		evaluated := testEval(test.T(), tt.input, tt.stmts)
-		testIntegerObject(test.T(), evaluated, tt.expected)
+		unwrapped := unwrapObservable(evaluated)
+
+		testIntegerObject(test.T(), *unwrapped, tt.expected)
 	}
 }
 

@@ -65,7 +65,7 @@ func (test *Suite) TestObserver() {
 
 	observable.Unregister(observers[0])
 
-	assert.Equal(test.T(), len(observable.observers), 3)
+	assert.Equal(test.T(), len(observable.Observers), 3)
 
 	observable.update(14)
 

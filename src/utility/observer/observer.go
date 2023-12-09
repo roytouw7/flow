@@ -11,23 +11,23 @@ type Observable[T any] interface {
 }
 
 type BaseObservable[T any] struct {
-	observers []Observer[T]
+	Observers []Observer[T]
 }
 
 func (o *BaseObservable[T]) Register(observer Observer[T]) {
-	o.observers = append(o.observers, observer)
+	o.Observers = append(o.Observers, observer)
 }
 
 func (o *BaseObservable[T]) NotifyAll(change T) {
-	for _, observer := range o.observers {
+	for _, observer := range o.Observers {
 		observer.Notify(change)
 	}
 }
 
 func (o *BaseObservable[T]) Unregister(removeObservable Observer[T]) {
-	for i, observer := range o.observers {
+	for i, observer := range o.Observers {
 		if observer == removeObservable {
-			o.observers = append(o.observers[:i], o.observers[i+1:]...)
+			o.Observers = append(o.Observers[:i], o.Observers[i+1:]...)
 			break
 		}
 	}

@@ -8,11 +8,19 @@ import (
 	"Flow/src/token"
 )
 
+// todo we moeten dus ook achterhalen of een identifier bestaat uit een andere identifier...
+// todo iedere identifier die bestaat uit een andere identifier moet zichzelf registreren bij die andere identifier	#2.
+// todo iedere identifier moet een observable zijn	#1.
+// todo iedere assignment op een identifier moet de NotifyAll aanroepen met de change	#3.
+
 var (
 	NULL  = &object.Null{}
 	TRUE  = &object.Boolean{Value: true}
 	FALSE = &object.Boolean{Value: false}
 )
+
+// we now recursively evaluate every node of the program
+// but identifiers should be evaluated only when they are used? in for example if statements, and identifier calls?
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
@@ -26,7 +34,6 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		right := Eval(node.Right, env)
 		return evalPrefixExpression(node.Operator, right, node.Token)
 	case *ast.InfixExpression:
-		//left, right := Eval(node.Left, env), Eval(node.Right, env)
 		return evalInfixExpression(node, env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -38,11 +45,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		val := Eval(node.ReturnValue, env)
 		return &object.ReturnValue{Value: val}
 	case *ast.LetStatement:
-		val := Eval(node.Value, env)
-		if isError(val) {
-			return val
-		}
-		env.Set(node.Name.Value, val) // todo val is whatever evaluates to right expression
+		return evalLetExpression(node, env)
 	case *ast.IdentifierLiteral:
 		return evalIdentifier(node, env)
 	}
@@ -97,7 +100,8 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 		return evalAssignmentExpression(node, env)
 	}
 
-	operator, left, right := node.Operator, Eval(node.Left, env), Eval(node.Right, env)
+	operator, left, right := node.Operator, *unwrapObservable(Eval(node.Left, env)), *unwrapObservable(Eval(node.Right, env))
+
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
@@ -112,6 +116,32 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	}
 }
 
+func unwrapObservable(o object.Object) *object.Object {
+	if observable, ok := o.(*object.Observable); ok {
+		return unwrapObservable(observable.Value)
+	}
+
+	return &o
+}
+
+func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.Object {
+	val := Eval(node.Value, env) // todo but value can also be composition of observables? Not as easy as now
+	if isError(val) {
+		return val
+	}
+
+	observable := object.NewObservable(val)
+
+	// if value is an observable we register for future changes to update our own value
+	if o, ok := val.(*object.Observable); ok {
+		o.Register(observable)
+	}
+
+	env.Set(node.Name.Value, observable)
+
+	return NULL
+}
+
 func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
 	right := Eval(node.Right, env)
 
@@ -120,11 +150,17 @@ func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment
 		return newEvalErrorObject("can't assign to non-identifier type, got=%T", node.Left)
 	}
 
-	if _, ok = env.Get(identifier.Value); !ok {
+	val, ok := env.Get(identifier.Value)
+	if !ok {
 		return newEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
 	}
 
-	env.Set(identifier.Value, right)
+	if observable, ok := val.(*object.Observable); ok {
+		observable.Value = right
+		observable.NotifyAll(right)
+	} else {
+		env.Set(identifier.Value, right)
+	}
 
 	return NULL
 }
