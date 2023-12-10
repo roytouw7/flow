@@ -116,7 +116,7 @@ func (test *Suite) TestLetStatements() {
 		{"let a = 5; let b = a; b;", 5, 3},
 		{"let a = 5; let b = a; let c = a + b + 5; c;", 15, 4},
 		{"let a = 5; a = 10; a", 10, 3},
-		{"let a = 10; let b = 7; a = a + b; a;", 17, 4},	// todo fails on a; a is stored as an identifier referencing expression a, which causes an infinite loop, nice...
+		{"let a = 10; let b = 7; a = a + b; a;", 17, 4},
 	}
 
 	for _, tt := range tests {
@@ -125,6 +125,52 @@ func (test *Suite) TestLetStatements() {
 		unwrapped := unwrapObservable(evaluated, env)
 
 		testIntegerObject(test.T(), *unwrapped, tt.expected)
+	}
+}
+
+func (test *Suite) TestFunctionLiterals() {
+	input := "(x) => { x + 2; };"
+
+	env := object.NewEnvironment()
+	evaluated := testEval(test.T(), input, 1, env)
+
+	fn, ok := evaluated.(*object.Function)
+	if !ok {
+		test.Failf("TestFunctionLiterals", "object is not FunctionLiteral, got=%T", evaluated)
+	}
+
+	if len(fn.Parameters) != 1 {
+		test.Failf("TestFunctionLiterals", "expected 1 parameters, got=%d", len(fn.Parameters))
+	}
+
+	if fn.Parameters[0].String() != "x" {
+		test.Failf("TestFunctionLiterals", "parameter is not \"x\" got=%q", fn.Parameters[0])
+	}
+
+	expectedBody := "(x + 2)"
+
+	if fn.Body.String() != expectedBody {
+		test.Failf("TestFunctionLiterals", "expected body to be=%q, got=%q", expectedBody, fn.Body.String())
+	}
+}
+
+func (test *Suite) TestFunctionApplication() {
+	tests := []struct {
+		input    string
+		expected int64
+		stmts    int
+	}{
+		{"let identity = (x) => { x; }; identity(5);", 5, 2},
+		{"let identity = (x) => { return x; }; identity(5);", 5, 2},
+		{"let add = (x, y) => { return x + y; }; add(7, 9);", 16, 2},
+		{"let add = (x, y) => {x + y; }; add(5 + 5, add(5, 5));", 20, 2},
+		{"(x) => { x; }(5);", 5, 1},
+	}
+
+	for _, tt := range tests {
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
+		testIntegerObject(test.T(), evaluated, tt.expected)
 	}
 }
 
