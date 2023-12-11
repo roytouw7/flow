@@ -1,14 +1,13 @@
 let a = 0;
-let b = a > 0;
+let b = 0;
 
-if(b) {
-    return 1;
+let add = (x, y) => {
+    return x + y;
 }
 
-a = 1;
+let sum = add(a, b);
 
-if(b) {
-    return 2;
-}
+a = 100;
+b = 7;
 
-return 3;
+sum;

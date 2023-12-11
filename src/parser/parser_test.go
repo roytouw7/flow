@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"Flow/src/ast"
@@ -353,7 +354,7 @@ func (test *Suite) TestParseTemplateMatcher() {
 
 	input := []template{
 		{
-			match: `\(.*\)\s*=>`, // whitespace is stripped by parser now, but anything except for whitespace between is invalid
+			match: regexp.MustCompile(`\(.*\)\s*=>`), // whitespace is stripped by parser now, but anything except for whitespace between is invalid
 			fn:    parseFn,
 			limit: &limit,
 		},
@@ -400,12 +401,12 @@ func (test *Suite) TestParseTemplateMatcher_TwoTemplates() {
 
 	input := []template{
 		{
-			match: `\(.*\)\s*=>`,
+			match: regexp.MustCompile(`\(.*\)\s*=>`),
 			fn:    parseFnArrowFn,
 			limit: nil,
 		},
 		{
-			match: `\(.+\)`,
+			match: regexp.MustCompile(`\(.+\)`),
 			fn:    parseFnGroupedExpr,
 			limit: &limit,
 		},
@@ -441,7 +442,7 @@ func (test *Suite) TestParseTemplateMatcher_NoMatch() {
 
 	input := []template{
 		{
-			match: `\[\]\[\]`, // not present in sample program
+			match: regexp.MustCompile(`\[\]\[\]`), // not present in sample program
 			fn:    parseFn,
 			limit: &limit,
 		},

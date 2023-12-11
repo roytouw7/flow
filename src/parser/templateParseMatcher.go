@@ -8,21 +8,31 @@ import (
 	"Flow/src/utility/slice"
 )
 
-// todo these regexps should be built from atomic pieces
-const (
-	arrowFnRegexp = `\(.*\)\s*=>` // whitespaces now optional because they are removed upon lexing
-	groupedExprRegexp = `\(.+\)`
+var (
+	arrowFnRegexp     *regexp.Regexp
+	groupedExprRegexp *regexp.Regexp
 )
 
+// todo these regexps should be built from atomic pieces
+const (
+	arrowFnRegexpString     = `\(.*\)\s*=>` // whitespaces now optional because they are removed upon lexing
+	groupedExprRegexpString = `\(.+\)`
+)
+
+func init() {
+	arrowFnRegexp = regexp.MustCompile(arrowFnRegexpString)
+	groupedExprRegexp = regexp.MustCompile(groupedExprRegexpString)
+}
+
 type (
-	prefixParseStatementFn func() ast.Statement	// todo are these needed? Can't we use the types from the parser instead?
+	prefixParseStatementFn func() ast.Statement // todo are these needed? Can't we use the types from the parser instead?
 	infixParseStatementFn  func(left ast.Expression) ast.Statement
 )
 
 type template struct {
-	match string // regex to match
-	fn    any    // fn to use on match
-	limit *int   // limit of characters to peek before resulting in false for template
+	match *regexp.Regexp // regex to match
+	fn    any            // fn to use on match
+	limit *int           // limit of characters to peek before resulting in false for template
 }
 
 // parseFnTemplateMatch matches a parse function on basis of a string match on source code
@@ -65,15 +75,10 @@ func (p *parser) parseFnTemplateMatch(prefixMatchers []template) any {
 }
 
 // tryMatchTokens peeks next token, adds to tokens slice, matches against matchString
-func (p *parser) tryMatchTokens(tokens []*token.Token, matchString string) bool {
+func (p *parser) tryMatchTokens(tokens []*token.Token, re *regexp.Regexp) bool {
 	stringRepresentation := tokensToString(tokens)
 
-	ok, err := regexp.MatchString(matchString, stringRepresentation)
-	if err != nil {
-		panic(err) // todo create appropriate error
-	}
-
-	return ok
+	return re.MatchString(stringRepresentation)
 }
 
 func tokensToString(tokens []*token.Token) string {

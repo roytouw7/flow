@@ -39,6 +39,9 @@ func (l *lexer) NextToken() *token.Token {
 }
 
 // todo memoization possbile? should also create a benchmark to check performance gain
+// todo given  file/pos and peek combination should be possible
+// todo we get a map of source:line:pos to peekN, on equal source:line:pos and smaller or equal peekN we can lookup
+
 // PeekN peek n tokens away without changing the current token positon
 func (l *lexer) PeekN(n int) (bool, *token.Token) {
 	if !l.iterator.HasNextN(n) || n < 1 {
