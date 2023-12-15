@@ -287,19 +287,19 @@ func (test *Suite) TestEatString() {
 }
 
 func (test *Suite) TestEatString_WithInterpolation() {
-	l := New("\"foo${7 + 9}bar\";")
+	l := New("\"foo ${7 + 9} bar\";")
 	tests := []struct {
 		expectedToken   token.Type
 		expectedLiteral string
 	}{
 		{token.STRING_DELIMITER, "\""},
-		{token.STRING_CHARACTERS, "foo"},
+		{token.STRING_CHARACTERS, "foo "},
 		{token.STRING_TEMPLATE_OPEN, "${"},
 		{token.INT, "7"},
 		{token.PLUS, "+"},
 		{token.INT, "9"},
 		{token.RBRACE, "}"},
-		{token.STRING_CHARACTERS, "bar"},
+		{token.STRING_CHARACTERS, " bar"},
 		{token.STRING_DELIMITER, "\""},
 		{token.SEMICOLON, ";"},
 		{token.EOF, "EOF"},

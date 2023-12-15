@@ -28,11 +28,22 @@ func New(input string) *lexer {
 
 // NextToken increment position by one token and return it
 func (l *lexer) NextToken() *token.Token {
+	var (
+		ch   rune
+		meta *metadata.MetaData
+		err  *cerr.IterationError
+	)
+
 	if !l.iterator.HasNext() {
 		return createEOFSymbolToken()
 	}
 
-	ch, meta, err := l.getNextNonWhiteSpaceCharacter()
+	if !l.stringOpen || l.stringTemplateOpen {
+		ch, meta, err = l.getNextNonWhiteSpaceCharacter()
+	} else {
+		ch, meta, err = l.iterator.Next()
+	}
+
 	if err != nil {
 		panic(err)
 	}

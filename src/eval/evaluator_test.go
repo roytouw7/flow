@@ -251,6 +251,13 @@ func (test *Suite) TestReturnStatements() {
 	testIntegerObject(test.T(), result, 10)
 }
 
+func (test *Suite) TestStringLiteral() {
+	p := parser.CreateProgram(test.T(), "\"foo ${1 + 7 * 9} bar\";", 1)
+	env := object.NewEnvironment()
+	result := Eval(p, env)
+	testStringObject(test.T(), result, "foo 64 bar")
+}
+
 func testEval(t *testing.T, input string, expectedStatements int, env *object.Environment) object.Object {
 	p := parser.CreateProgram(t, input, expectedStatements)
 	return Eval(p, env)
@@ -280,6 +287,21 @@ func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
 
 	if result.Value != expected {
 		t.Errorf("object has wrong value, got=%t, expected=%t", result.Value, expected)
+		return false
+	}
+
+	return true
+}
+
+func testStringObject(t *testing.T, obj object.Object, expected string) bool {
+	result, ok := obj.(*object.String)
+	if !ok {
+		t.Errorf("object is not String, got=%T (%v)", obj, obj)
+		return false
+	}
+
+	if result.Value != expected {
+		t.Errorf("object has wrong value, got=%s, expected=%s", result.Value, expected)
 		return false
 	}
 

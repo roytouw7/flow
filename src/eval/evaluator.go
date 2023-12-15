@@ -1,7 +1,9 @@
 package eval
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
 
 	"Flow/src/ast"
 	"Flow/src/object"
@@ -47,12 +49,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(fn) {
 			return fn
 		}
-		//args := evalExpressions(node.Arguments, env)
-		//if len(args) == 1 && isError(args[0]) {
-		//	return args[0]
-		//}
-
 		return applyFunction(fn, node.Arguments)
+	case *ast.StringLiteral:
+		return evalStringLiteral(node, env)
 	}
 
 	return nil
@@ -308,6 +307,51 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 	} else {
 		return NULL
 	}
+}
+
+func evalStringLiteral(s *ast.StringLiteral, env *object.Environment) object.Object {
+	o := object.String{}
+	parts := &s.StringParts
+	var out bytes.Buffer
+
+	for {
+		stringPart := parts.Value.CharacterString
+		exprPart := parts.Value.Expr
+
+		if exprPart != nil {
+			val := Eval(exprPart, env)
+			out.WriteString(toString(val))
+		}
+
+		if stringPart != nil {
+			out.WriteString(*stringPart)
+		}
+
+		if !parts.HasNext() {
+			break
+		}
+		parts = parts.Next()
+	}
+
+	o.Value = out.String()
+	return &o
+}
+
+func toString(obj object.Object) string {
+	switch obj := obj.(type) {
+	case *object.String:
+		return obj.Value
+	case *object.Integer:
+		return strconv.FormatInt(obj.Value, 10)
+	case *object.Boolean:
+		if obj.Value {
+			return "true"
+		}
+		return "false"
+	case *object.Null: // todo identifier type
+		return "NULL"
+	}
+	panic(fmt.Sprintf("can't stringify type %T", obj))
 }
 
 func newEvalErrorObject(format string, a ...interface{}) *object.EvalError {
