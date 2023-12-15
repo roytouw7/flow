@@ -166,6 +166,12 @@ func (test *Suite) TestNextToken() {
 		{token.NOT_EQ, "!="},
 		{token.INT, "199"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.NEWLINE, "\n"},
+		{token.STRING_DELIMITER, "\""},
+		{token.STRING_CHARACTERS, "foobar"},
+		{token.STRING_DELIMITER, "\""},
+		{token.SEMICOLON, ";"},
 		{token.EOF, "EOF"},
 	}
 
@@ -257,6 +263,52 @@ func (test *Suite) TestPeekN() {
 				test.T().Error(err)
 			}
 		}
+	}
+}
+
+func (test *Suite) TestEatString() {
+	l := New("\"foobar\";")
+	tests := []struct {
+		expectedToken   token.Type
+		expectedLiteral string
+	}{
+		{token.STRING_DELIMITER, "\""},
+		{token.STRING_CHARACTERS, "foobar"},
+		{token.STRING_DELIMITER, "\""},
+		{token.SEMICOLON, ";"},
+		{token.EOF, "EOF"},
+	}
+
+	for _, tt := range tests {
+		tok := l.NextToken()
+		test.Equal(tt.expectedToken, tok.Type)
+		test.Equal(tt.expectedLiteral, tok.Literal)
+	}
+}
+
+func (test *Suite) TestEatString_WithInterpolation() {
+	l := New("\"foo${7 + 9}bar\";")
+	tests := []struct {
+		expectedToken   token.Type
+		expectedLiteral string
+	}{
+		{token.STRING_DELIMITER, "\""},
+		{token.STRING_CHARACTERS, "foo"},
+		{token.STRING_TEMPLATE_OPEN, "${"},
+		{token.INT, "7"},
+		{token.PLUS, "+"},
+		{token.INT, "9"},
+		{token.RBRACE, "}"},
+		{token.STRING_CHARACTERS, "bar"},
+		{token.STRING_DELIMITER, "\""},
+		{token.SEMICOLON, ";"},
+		{token.EOF, "EOF"},
+	}
+
+	for _, tt := range tests {
+		tok := l.NextToken()
+		test.Equal(tt.expectedToken, tok.Type)
+		test.Equal(tt.expectedLiteral, tok.Literal)
 	}
 }
 

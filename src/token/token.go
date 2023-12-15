@@ -44,6 +44,11 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
+
+	// String
+	STRING_DELIMITER = "\""
+	STRING_CHARACTERS= "STRING_CHARACTERS"
+	STRING_TEMPLATE_OPEN = "${"
 )
 
 type Type string

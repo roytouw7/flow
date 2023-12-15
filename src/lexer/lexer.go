@@ -13,7 +13,9 @@ import (
 // todo metadata and token should become interfaces; place interface in consuming module; data struct adhering these interfaces in own module
 
 type lexer struct {
-	iterator iterator.StringIterator
+	iterator           iterator.StringIterator
+	stringOpen         bool
+	stringTemplateOpen bool
 }
 
 func New(input string) *lexer {
@@ -115,6 +117,20 @@ func (l *lexer) getNextNonWhiteSpaceCharacter() (rune, *metadata.MetaData, *cerr
 func (l *lexer) isSymbolToken(ch rune, meta *metadata.MetaData) (bool, *token.Token) {
 	newToken := curriedSymbolTokenConstructor(meta)
 
+	if l.stringOpen && ch != '"' {
+		if ch == '$' && l.isMultiSymbolToken('{') {
+			l.stringTemplateOpen = true
+			return true, newToken(token.STRING_TEMPLATE_OPEN)
+		}
+		if ch == '}' {
+			l.stringTemplateOpen = false
+			return true, newToken(token.RBRACE)
+		}
+		if l.stringTemplateOpen == false {
+			return true, l.eatString(ch, meta)
+		}
+	}
+
 	switch ch {
 	case '=':
 		switch {
@@ -162,9 +178,48 @@ func (l *lexer) isSymbolToken(ch rune, meta *metadata.MetaData) (bool, *token.To
 		return true, newToken(token.LBRACE)
 	case '}':
 		return true, newToken(token.RBRACE)
+	case '"':
+		l.stringOpen = !l.stringOpen
+		return true, newToken(token.STRING_DELIMITER)
 	default:
 		return false, newToken(token.UNKNOWN)
 	}
+}
+
+func (l *lexer) eatString(ch rune, meta *metadata.MetaData) *token.Token {
+	t := token.Token{
+		Type:    token.STRING_CHARACTERS,
+		Pos:     meta.Pos,
+		Line:    meta.Line,
+		Literal: string(ch),
+	}
+
+	for l.iterator.HasNext() {
+		ch, err := l.iterator.Peek()
+		if err != nil {
+			panic(err)
+		}
+		if ch == '"' {
+			return &t
+		}
+		if ch == '$' {
+			nextCh, err := l.iterator.PeekN(2)
+			if err != nil {
+				panic(err)
+			}
+			if nextCh == '{' {
+				return &t
+			}
+		}
+
+		ch, _, err = l.iterator.Next()
+		if err != nil {
+			panic(err)
+		}
+		t.Literal += string(ch)
+	}
+
+	return &t
 }
 
 func (l *lexer) isStringLiteral(ch rune, meta *metadata.MetaData) (bool, *token.Token) {
@@ -234,7 +289,7 @@ func (l *lexer) isMultiSymbolToken(chs ...rune) bool {
 		}
 
 		if _, _, err = l.iterator.Next(); err != nil {
-			panic(err)	// todo error handling
+			panic(err) // todo error handling
 		}
 	}
 
