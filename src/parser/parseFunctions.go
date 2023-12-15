@@ -6,6 +6,7 @@ import (
 	"Flow/src/ast"
 	"Flow/src/error"
 	"Flow/src/token"
+	"Flow/src/utility/linkedList"
 )
 
 // todo functions like these should return the error if something goes wrong to wrap the calling context, parse function should return error
@@ -286,7 +287,6 @@ func (p *parser) parseCallArguments() []ast.Expression {
 		args = append(args, p.parseExpression(LOWEST))
 	}
 
-
 	if p.peekToken.Literal != token.RPAREN {
 		return nil // todo error handling
 	}
@@ -294,4 +294,41 @@ func (p *parser) parseCallArguments() []ast.Expression {
 	p.nextToken()
 
 	return args
+}
+
+func (p *parser) parseStringLiteral() ast.Expression {
+	exp := ast.StringLiteral{Token: *p.curToken}
+
+	p.nextToken()
+
+	l := linkedList.LinkedList[ast.StringLiteralPart]{}
+	for p.curToken.Literal != token.STRING_DELIMITER {
+		part := ast.StringLiteralPart{}
+		if p.curToken.Type == token.STRING_TEMPLATE_OPEN {
+			p.nextToken()
+			part.Expr = p.parseExpressionStatement()
+			p.nextToken()
+			p.nextToken()
+		}
+
+		if p.curToken.Type == token.STRING_CHARACTERS {
+			part.CharacterString = &p.curToken.Literal
+			p.nextToken()
+		}
+
+		if p.curToken.Type == token.EOF {
+			panic("Reached end of file before closing string!")
+		}
+
+		l.Push(part)
+	}
+
+	if p.curToken.Type == token.STRING_DELIMITER {
+		p.nextToken()
+	} else {
+		panic("Not closing string!")
+	}
+
+	exp.StringParts = l
+	return &exp
 }

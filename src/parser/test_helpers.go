@@ -85,7 +85,7 @@ func testLetStatement(t *testing.T, s ast.Statement, name string, value interfac
 	}
 
 	if letStmt.Name.Value != name {
-		t.Errorf("letStmt.Name.Value not '%s'; got =%s", name, letStmt.Name.Value)
+		t.Errorf("letStmt.Name.StringParts not '%s'; got =%s", name, letStmt.Name.Value)
 		return false
 	}
 
@@ -183,7 +183,7 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 		return false
 	}
 	if integ.Value != value {
-		t.Errorf("integ.Value not %d; got=%d", value, integ.Value)
+		t.Errorf("integ.StringParts not %d; got=%d", value, integ.Value)
 		return false
 	}
 	if integ.TokenLiteral() != fmt.Sprintf("%d", value) {
@@ -201,7 +201,7 @@ func testBooleanLiteral(t *testing.T, bl ast.Expression, value bool) bool {
 		return false
 	}
 	if literal.Value != value {
-		t.Errorf("literal.Value not %t, got=%t", value, literal.Value)
+		t.Errorf("literal.StringParts not %t, got=%t", value, literal.Value)
 		return false
 	}
 	if literal.TokenLiteral() != fmt.Sprintf("%t", value) {
@@ -220,7 +220,7 @@ func testIdentifier(t *testing.T, il ast.Expression, value string) bool {
 	}
 
 	if ident.Value != value {
-		t.Errorf("ident.Value not %s; got=%s", value, ident.Value)
+		t.Errorf("ident.StringParts not %s; got=%s", value, ident.Value)
 		return false
 	}
 

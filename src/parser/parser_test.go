@@ -495,3 +495,18 @@ func (test *Suite) TestAssignmentExpressionParsing() {
 		}
 	}
 }
+
+func (test *Suite) TestStringLiteralParsing() {
+	p := CreateProgram(test.T(), "let a = \"foo ${1 + 2} bar\";", 1)
+	stmt, ok := p.Statements[0].(*ast.LetStatement)
+	if !ok {
+		test.Failf("TestStringLiteralParsing", "stmt is not an *ast.LetStatement, got=%T", p.Statements[0])
+	}
+
+	stringLiteral, ok := stmt.Value.(*ast.StringLiteral)
+	if !ok {
+		test.Failf("TestStringLiteralParsing", "value is not an *ast.StringLiteral, got=%T", stmt.Value)
+	}
+
+	_ = stringLiteral.StringParts
+}

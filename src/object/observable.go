@@ -26,7 +26,7 @@ func (o *Observable) Type() ObjectType {
 }
 
 func (o *Observable) Inspect() string {
-	//return fmt.Sprintf("%s observable", o.Value.Inspect())
+	//return fmt.Sprintf("%s observable", o.StringParts.Inspect())
 	return "" // todo
 }
 

@@ -75,6 +75,7 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
 	p.prefixParseFns[token.IF] = p.parseIfExpression
 	p.prefixParseFns[token.LPAREN] = p.parseLParenExpression
+	p.prefixParseFns[token.STRING_DELIMITER] = p.parseStringLiteral
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression
@@ -234,7 +235,7 @@ func (p *parser) parseExpression(precedence int) ast.Expression {
 
 	leftExp := prefix()
 
-	for p.peekToken.Type != token.SEMICOLON && precedence < precedences[p.peekToken.Type] {
+	for (p.peekToken.Type != token.SEMICOLON && p.peekToken.Type != token.RBRACE) && precedence < precedences[p.peekToken.Type] {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
 			p.registerError(cerr.Wrap(cerr.MissingParseFnError(p.curToken, cerr.Infix), "parseExpression"))
