@@ -157,7 +157,7 @@ func (test *Suite) TestFunctionLiterals() {
 func (test *Suite) TestFunctionApplication() {
 	tests := []struct {
 		input    string
-		expected int64
+		expected interface{}
 		stmts    int
 	}{
 		{"let identity = (x) => { x; }; identity(5);", 5, 2},
@@ -165,12 +165,18 @@ func (test *Suite) TestFunctionApplication() {
 		{"let add = (x, y) => { return x + y; }; add(7, 9);", 16, 2},
 		{"let add = (x, y) => {x + y; }; add(5 + 5, add(5, 5));", 20, 2},
 		{"(x) => { x; }(5);", 5, 1},
+		{"let identity = (x) => { return x; }; identity(\"test\");", "test", 2},
 	}
 
 	for _, tt := range tests {
 		env := object.NewEnvironment()
 		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
-		testIntegerObject(test.T(), evaluated, tt.expected)
+		switch expected := tt.expected.(type) {
+		case int:
+			testIntegerObject(test.T(), evaluated, int64(expected))
+		case string:
+			testStringObject(test.T(), evaluated, expected)
+		}
 	}
 }
 
@@ -256,6 +262,37 @@ func (test *Suite) TestStringLiteral() {
 	env := object.NewEnvironment()
 	result := Eval(p, env)
 	testStringObject(test.T(), result, "foo 64 bar")
+}
+
+func (test *Suite) TestNativeFunctions() {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{`len("")`, 0},
+		{`len("four")`, 4},
+		{`len("hello world")`, 11},
+		{`len(1)`, "argument to \"len\" not supported, got=*object.Integer"},
+		{`len("one", "two")`, "expected 1 argument for len got=2"},
+	}
+
+	for _, tt := range tests {
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, 1, env)
+		switch expected := tt.expected.(type) {
+		case int:
+			testIntegerObject(test.T(), evaluated, int64(expected))
+		case string:
+			errObj, ok := evaluated.(*object.EvalError)
+			if !ok {
+				test.T().Errorf("Object is not error, got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+			if errObj.Message != expected {
+				test.T().Errorf("wrong error message, expected=%q, got=%q", expected, errObj.Message)
+			}
+		}
+	}
 }
 
 func testEval(t *testing.T, input string, expectedStatements int, env *object.Environment) object.Object {

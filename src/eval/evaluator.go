@@ -8,6 +8,7 @@ import (
 	"Flow/src/ast"
 	"Flow/src/object"
 	"Flow/src/token"
+	"Flow/src/utility/slice"
 )
 
 var (
@@ -49,7 +50,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(fn) {
 			return fn
 		}
-		return applyFunction(fn, node.Arguments)
+		return applyFunction(fn, node.Arguments, env)
 	case *ast.StringLiteral:
 		return evalStringLiteral(node, env)
 	}
@@ -103,15 +104,20 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 	return result
 }
 
-func applyFunction(fn object.Object, args []ast.Expression) object.Object {
-	function, ok := fn.(*object.Function)
-	if !ok {
+func applyFunction(fn object.Object, args []ast.Expression, env *object.Environment) object.Object {
+	switch fn := fn.(type) {
+	case *object.Function:
+		extendedEnv := extendFunctionEnv(fn, args)
+		evaluated := Eval(fn.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
+	case *object.NativeFunc:
+		evaluatedArgs := slice.Map(args, func(expr ast.Expression) object.Object {
+			return Eval(expr, env)
+		})
+		return fn.Fn(evaluatedArgs...)
+	default:
 		return newEvalErrorObject("not a function: %s", fn.Type())
 	}
-
-	extendedEnv := extendFunctionEnv(function, args)
-	evaluated := Eval(function.Body, extendedEnv)
-	return unwrapReturnValue(evaluated)
 }
 
 func extendFunctionEnv(fn *object.Function, args []ast.Expression) *object.Environment {
@@ -239,14 +245,15 @@ func substituteSelfReference(node ast.Expression, self string, value *ast.Expres
 }
 
 func evalIdentifier(node *ast.IdentifierLiteral, env *object.Environment) object.Object {
-	expr, ok := env.Get(node.Value)
-	if !ok {
-		return newEvalErrorObject(fmt.Sprintf("identifier not found: %s", node.Value))
+	if expr, ok := env.Get(node.Value); ok {
+		return Eval(*expr, env)
 	}
 
-	val := Eval(*expr, env)
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
+	}
 
-	return val
+	return newEvalErrorObject(fmt.Sprintf("identifier not found: %s", node.Value))
 }
 
 func evalBangOperatorExpression(right object.Object) object.Object {

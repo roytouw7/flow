@@ -472,7 +472,7 @@ func (test *Suite) TestCallExpressionParsing() {
 		return
 	}
 
-	if len(exp.Arguments) != 3 {
+	if len(exp.Arguments) != 4 {
 		test.Failf("TestCallExpressionParsing", "number of arguments does not equal 3, got=%d", len(exp.Arguments))
 	}
 }

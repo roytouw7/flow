@@ -172,6 +172,16 @@ func (test *Suite) TestNextToken() {
 		{token.STRING_CHARACTERS, "foobar"},
 		{token.STRING_DELIMITER, "\""},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.IDENT, "apply"},
+		{token.LPAREN, "("},
+		{token.INT, "1"},
+		{token.COMMA, ","},
+		{token.STRING_DELIMITER, "\""},
+		{token.STRING_CHARACTERS, "test"},
+		{token.STRING_DELIMITER, "\""},
+		{token.RPAREN, ")"},
+		{token.SEMICOLON, ";"},
 		{token.EOF, "EOF"},
 	}
 

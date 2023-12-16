@@ -6,6 +6,7 @@ import (
 	"Flow/src/ast"
 	"Flow/src/error"
 	"Flow/src/token"
+	"Flow/src/utility/convert"
 	"Flow/src/utility/linkedList"
 )
 
@@ -323,10 +324,12 @@ func (p *parser) parseStringLiteral() ast.Expression {
 		l.Push(part)
 	}
 
-	if p.curToken.Type == token.STRING_DELIMITER {
-		p.nextToken()
-	} else {
+	if p.curToken.Type != token.STRING_DELIMITER {
 		panic("Not closing string!")
+	}
+
+	if l.Value == nil {	// empty string literal will be set to empty string value
+		l.Value = &ast.StringLiteralPart{CharacterString: convert.NewString("")}
 	}
 
 	exp.StringParts = l
