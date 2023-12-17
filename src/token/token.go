@@ -37,18 +37,21 @@ const (
 	RBRACE = "}"
 
 	//	Keywords
-	FUNCTION = "FUNCTION"
-	LET      = "LET"
-	TRUE     = "TRUE"
-	FALSE    = "FALSE"
-	IF       = "IF"
-	ELSE     = "ELSE"
-	RETURN   = "RETURN"
+	LET    = "LET"
+	TRUE   = "TRUE"
+	FALSE  = "FALSE"
+	IF     = "IF"
+	ELSE   = "ELSE"
+	RETURN = "RETURN"
 
 	// String
-	STRING_DELIMITER = "\""
-	STRING_CHARACTERS= "STRING_CHARACTERS"
+	STRING_DELIMITER     = "\""
+	STRING_CHARACTERS    = "STRING_CHARACTERS"
 	STRING_TEMPLATE_OPEN = "${"
+
+	// Array
+	LBRACKET = "["
+	RBRACKET = "]"
 )
 
 type Type string

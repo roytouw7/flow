@@ -510,3 +510,51 @@ func (test *Suite) TestStringLiteralParsing() {
 
 	_ = stringLiteral.StringParts
 }
+
+func (test *Suite) TestArrayLiteralParsing() {
+	input := `[1, 2, 3 + 3, "henk${1}"];`
+	p := CreateProgram(test.T(), input, 1)
+
+	stmt, ok := p.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		test.T().Fatalf("exp not *ast.ExpressionStatement, got=%T", p.Statements[0])
+	}
+
+	array, ok := stmt.Expression.(*ast.ArrayLiteral)
+	if !ok {
+		test.T().Fatalf("exp not *ast.ArrayLiteral, got=%T", stmt)
+	}
+
+	if len(array.Elements) != 4 {
+		test.T().Fatalf("expected array literal to have 4 elements, got=%d", len(array.Elements))
+	}
+
+	testIntegerLiteral(test.T(), array.Elements[0], 1)
+	testIntegerLiteral(test.T(), array.Elements[1], 2)
+	testInfixExpression(test.T(), array.Elements[2], 3, "+", 3)
+	testStringLiteral(test.T(), array.Elements[3], "henk1")
+}
+
+func (test *Suite) TestIndexExpressionParsing() {
+	input := "myArray[1 + 1];"
+
+	p := CreateProgram(test.T(), input, 1)
+
+	stmt, ok := p.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		test.T().Fatalf("exp not *ast.ExpressionStatement, got=%T", p.Statements[0])
+	}
+
+	indexExp, ok := stmt.Expression.(*ast.IndexExpression)
+	if !ok {
+		test.T().Fatalf("exp not *ast.IndexExpression, got=%T", stmt)
+	}
+
+	if !testIdentifier(test.T(), indexExp.Left, "myArray") {
+		return
+	}
+
+	if !testInfixExpression(test.T(), indexExp.Index, 1, "+", 1) {
+		return
+	}
+}

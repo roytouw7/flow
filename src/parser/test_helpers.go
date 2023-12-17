@@ -44,7 +44,7 @@ func createParserFromFile(fileName string) *parser {
 	l := lexer.New(string(data))
 	p := New(l)
 
-	if parser, ok :=  p.(*parser); ok == true{
+	if parser, ok := p.(*parser); ok == true {
 		return parser
 	}
 
@@ -206,6 +206,20 @@ func testBooleanLiteral(t *testing.T, bl ast.Expression, value bool) bool {
 	}
 	if literal.TokenLiteral() != fmt.Sprintf("%t", value) {
 		t.Errorf("literal.TokenLiteral not %t; got=%s", value, literal.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func testStringLiteral(t *testing.T, sl ast.Expression, value string) bool {
+	stringLiteral, ok := sl.(*ast.StringLiteral)
+	if !ok {
+		t.Errorf("element not *ast.StringLiteral, got=%T", sl)
+		return false
+	}
+	if stringLiteral.String() != value {
+		t.Errorf("expected *ast.StringLiteral to have value %q, got=%q", value, stringLiteral.String())
 		return false
 	}
 

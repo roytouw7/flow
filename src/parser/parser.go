@@ -19,6 +19,7 @@ const (
 	PRODUCT
 	PREFIX
 	CALL
+	INDEX	//array[index]
 )
 
 var precedences = map[token.Type]int{
@@ -33,6 +34,7 @@ var precedences = map[token.Type]int{
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
 	token.ASSIGN:   ASSIGNMENT,
+	token.LBRACKET: INDEX,
 }
 
 type Lexer interface {
@@ -76,6 +78,7 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.IF] = p.parseIfExpression
 	p.prefixParseFns[token.LPAREN] = p.parseLParenExpression
 	p.prefixParseFns[token.STRING_DELIMITER] = p.parseStringLiteral
+	p.prefixParseFns[token.LBRACKET] = p.parseArrayLiteral
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression
@@ -89,6 +92,7 @@ func New(l Lexer) Parser {
 	p.infixParseFns[token.ASSIGN] = p.parseInfixExpression
 	p.infixParseFns[token.QUESTION] = p.parseTernaryExpression
 	p.infixParseFns[token.LPAREN] = p.parseCallExpression
+	p.infixParseFns[token.LBRACKET] = p.parseIndexExpression
 
 	// Set current and peek token
 	p.nextToken()
@@ -249,4 +253,30 @@ func (p *parser) parseExpression(precedence int) ast.Expression {
 
 	return leftExp
 
+}
+
+func (p *parser) parseExpressionList(end token.Type) []ast.Expression {
+	var list []ast.Expression
+
+	if p.peekToken.Type == end {
+		p.nextToken()
+		return list
+	}
+
+	p.nextToken()
+	list = append(list, p.parseExpression(LOWEST))
+
+	for p.peekToken.Literal == token.COMMA {
+		p.nextToken()
+		p.nextToken()
+		list = append(list, p.parseExpression(LOWEST))
+	}
+
+	if p.peekToken.Type != end {
+		return nil // todo error handling
+	}
+
+	p.nextToken()
+
+	return list
 }

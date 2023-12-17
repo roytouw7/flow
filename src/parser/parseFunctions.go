@@ -265,36 +265,10 @@ func (p *parser) parseCallExpression(function ast.Expression) ast.Expression {
 	exp := &ast.CallExpression{
 		Token:     *p.curToken,
 		Function:  function,
-		Arguments: p.parseCallArguments(),
+		Arguments: p.parseExpressionList(token.RPAREN),
 	}
 
 	return exp
-}
-
-func (p *parser) parseCallArguments() []ast.Expression {
-	var args []ast.Expression
-
-	if p.peekToken.Literal == token.RPAREN {
-		p.nextToken()
-		return args
-	}
-
-	p.nextToken()
-	args = append(args, p.parseExpression(LOWEST))
-
-	for p.peekToken.Literal == token.COMMA {
-		p.nextToken()
-		p.nextToken()
-		args = append(args, p.parseExpression(LOWEST))
-	}
-
-	if p.peekToken.Literal != token.RPAREN {
-		return nil // todo error handling
-	}
-
-	p.nextToken()
-
-	return args
 }
 
 func (p *parser) parseStringLiteral() ast.Expression {
@@ -328,10 +302,33 @@ func (p *parser) parseStringLiteral() ast.Expression {
 		panic("Not closing string!")
 	}
 
-	if l.Value == nil {	// empty string literal will be set to empty string value
+	if l.Value == nil { // empty string literal will be set to empty string value
 		l.Value = &ast.StringLiteralPart{CharacterString: convert.NewString("")}
 	}
 
 	exp.StringParts = l
 	return &exp
+}
+
+func (p *parser) parseArrayLiteral() ast.Expression {
+	array := &ast.ArrayLiteral{Token: *p.curToken}
+
+	array.Elements = p.parseExpressionList(token.RBRACKET)
+
+	return array
+}
+
+func (p *parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	exp := &ast.IndexExpression{Token: *p.curToken, Left: left}
+
+	p.nextToken()
+	exp.Index = p.parseExpression(LOWEST)
+
+	if p.peekToken.Type != token.RBRACKET {
+		panic("Not closing array index")
+	}
+
+	p.nextToken()
+
+	return exp
 }

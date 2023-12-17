@@ -182,6 +182,15 @@ func (test *Suite) TestNextToken() {
 		{token.STRING_DELIMITER, "\""},
 		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.LBRACKET, "["},
+		{token.INT, "1"},
+		{token.COMMA, ","},
+		{token.INT, "2"},
+		{token.COMMA, ","},
+		{token.INT, "3"},
+		{token.RBRACKET, "]"},
+		{token.SEMICOLON, ";"},
 		{token.EOF, "EOF"},
 	}
 
