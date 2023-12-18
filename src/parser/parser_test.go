@@ -9,6 +9,7 @@ import (
 
 	"Flow/src/ast"
 	"Flow/src/token"
+	"Flow/src/utility/convert"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -556,5 +557,49 @@ func (test *Suite) TestIndexExpressionParsing() {
 
 	if !testInfixExpression(test.T(), indexExp.Index, 1, "+", 1) {
 		return
+	}
+}
+
+func (test *Suite) TestIndexSliceExpressionParsing() {
+	tests := []struct {
+		input string
+		left  *int64
+		right *int64
+	}{
+		{"myArray[2:4]", convert.NewInt64(2), convert.NewInt64(4)},
+		{"myArray[:4]", nil, convert.NewInt64(4)},
+		{"myArray[7:]", convert.NewInt64(7), nil},
+		{"myArray[:]", nil, nil},
+	}
+
+	for _, tt := range tests {
+		p := CreateProgram(test.T(), tt.input, 1)
+
+		stmt, ok := p.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			test.T().Fatalf("exp not *ast.ExpressionStatement, got=%T", p.Statements[0])
+		}
+
+		indexExp, ok := stmt.Expression.(*ast.IndexExpression)
+		if !ok {
+			test.T().Fatalf("exp not *ast.IndexExpression, got=%T", stmt)
+		}
+
+		sliceExpr, ok := indexExp.Index.(*ast.SliceLiteral)
+		if !ok {
+			test.T().Fatalf("exp not *ast.SliceLiteral, got=%T", indexExp.Index)
+		}
+
+		if tt.left != nil {
+			testIntegerLiteral(test.T(), *sliceExpr.Left, *tt.left)
+		} else {
+			test.Nil(sliceExpr.Left)
+		}
+
+		if tt.right != nil {
+			testIntegerLiteral(test.T(), *sliceExpr.Right, *tt.right)
+		} else {
+			test.Nil(sliceExpr.Right)
+		}
 	}
 }

@@ -332,3 +332,33 @@ func (p *parser) parseIndexExpression(left ast.Expression) ast.Expression {
 
 	return exp
 }
+
+func (p *parser) parseSliceLiteralExpression(left ast.Expression) ast.Expression {
+	exp := &ast.SliceLiteral{Token: *p.curToken, Left: &left}
+
+	if p.peekToken.Type == token.RBRACKET {
+		return exp
+	}
+
+	p.nextToken()
+
+	right := p.parseExpression(LOWEST)
+	exp.Right = &right
+
+	return exp
+}
+
+func (p *parser) parsePrefixSliceLiteralExpression() ast.Expression {
+	exp := &ast.SliceLiteral{Token: *p.curToken}
+
+	if p.peekToken.Type == token.RBRACKET {
+		return exp
+	}
+
+	p.nextToken()
+
+	right := p.parseExpression(LOWEST)
+	exp.Right = &right
+
+	return exp
+}

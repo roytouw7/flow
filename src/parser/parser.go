@@ -19,7 +19,8 @@ const (
 	PRODUCT
 	PREFIX
 	CALL
-	INDEX	//array[index]
+	SLICE
+	INDEX //array[index]
 )
 
 var precedences = map[token.Type]int{
@@ -34,7 +35,8 @@ var precedences = map[token.Type]int{
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
 	token.ASSIGN:   ASSIGNMENT,
-	token.LBRACKET: INDEX,
+	token.LBRACKET: SLICE,
+	token.COLON:    ASSIGNMENT,
 }
 
 type Lexer interface {
@@ -79,6 +81,7 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.LPAREN] = p.parseLParenExpression
 	p.prefixParseFns[token.STRING_DELIMITER] = p.parseStringLiteral
 	p.prefixParseFns[token.LBRACKET] = p.parseArrayLiteral
+	p.prefixParseFns[token.COLON] = p.parsePrefixSliceLiteralExpression
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression
@@ -93,6 +96,7 @@ func New(l Lexer) Parser {
 	p.infixParseFns[token.QUESTION] = p.parseTernaryExpression
 	p.infixParseFns[token.LPAREN] = p.parseCallExpression
 	p.infixParseFns[token.LBRACKET] = p.parseIndexExpression
+	p.infixParseFns[token.COLON] = p.parseSliceLiteralExpression
 
 	// Set current and peek token
 	p.nextToken()
