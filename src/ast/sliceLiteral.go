@@ -8,8 +8,9 @@ import (
 
 type SliceLiteral struct {
 	Token token.Token
-	Left  *Expression
-	Right *Expression
+	Left  Expression
+	Lower *Expression
+	Upper *Expression
 }
 
 func (s *SliceLiteral) expressionNode() {}
@@ -17,13 +18,16 @@ func (s *SliceLiteral) TokenLiteral() string {
 	return s.Token.Literal
 }
 func (s *SliceLiteral) String() string {
-	if s.Left != nil && s.Right != nil {
-		return fmt.Sprintf("%s:%s", s.Left, s.Right)
-	} else if s.Left != nil {
-		return fmt.Sprintf("%s:", s.Left)
-	} else if s.Right != nil {
-		return fmt.Sprintf(":%s", s.Right)
+	lowerStr := (*(*s).Lower).String()
+	upperStr := (*(*s).Upper).String()
+
+	if s.Lower != nil && s.Upper != nil {
+		return fmt.Sprintf("(%s[%s:%s])", s.Left.String(), lowerStr, upperStr)
+	} else if s.Lower != nil {
+		return fmt.Sprintf("(%s[%s:])", s.Left.String(), lowerStr)
+	} else if s.Upper != nil {
+		return fmt.Sprintf("(%s[:%s])", s.Left.String(), upperStr)
 	}
 
-	return ":"
+	return fmt.Sprintf("(%s[:])", s.Left.String())
 }

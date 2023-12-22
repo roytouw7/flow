@@ -330,17 +330,28 @@ func (test *Suite) TestArrayIndexing() {
 		{"let myArray = [1, 2, 3]; myArray[2];", 3, 2},
 		{"let myArray = [1, 2, 3]; let i = myArray[0] + myArray[1] + myArray[2]; i;", 6, 3},
 		{"let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i];", 2, 3},
-		{"[1, 2, 3][3]", nil, 1}, // todo might want to return error here...?
+		{"[1, 2, 3][3]", nil, 1},  // todo might want to return error here...?
 		{"[1, 2, 3][-1]", nil, 1}, // todo might want to return 3 here...?
+		{"[1, 2, 3][:];", []int{1, 2, 3}, 1},
+		{"[1, 2, 3][1:];", []int{2, 3}, 1},
+		{"[1, 2, 3][:2];", []int{1, 2}, 1},
+		{"[1, 2, 3][1:2];", []int{2}, 1},
+		{"let i = 0; let j = 2; [1, 2, 3][i:j];", []int{1, 2}, 3},
+		{"let myArray = [1, 2, 3]; let lower = 1 + 0; let upper = 1 + 1; myArray[lower:upper];", []int{2}, 4},
 	}
 
 	for _, tt := range tests {
 		env := object.NewEnvironment()
 		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
-		integer, ok := tt.expected.(int)
-		if ok {
-			testIntegerObject(test.T(), evaluated, int64(integer))
-		} else {
+		switch expected := tt.expected.(type) {
+		case int:
+			testIntegerObject(test.T(), evaluated, int64(expected))
+		case []int:
+			array := evaluated.(*object.Array)
+			for i := 0; i < len(expected); i++ {
+				testIntegerObject(test.T(), array.Elements[i], int64(expected[i]))
+			}
+		default:
 			testNullObject(test.T(), evaluated)
 		}
 	}

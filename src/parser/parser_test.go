@@ -563,13 +563,14 @@ func (test *Suite) TestIndexExpressionParsing() {
 func (test *Suite) TestIndexSliceExpressionParsing() {
 	tests := []struct {
 		input string
-		left  *int64
-		right *int64
+		left  string
+		lower *int64
+		upper *int64
 	}{
-		{"myArray[2:4]", convert.NewInt64(2), convert.NewInt64(4)},
-		{"myArray[:4]", nil, convert.NewInt64(4)},
-		{"myArray[7:]", convert.NewInt64(7), nil},
-		{"myArray[:]", nil, nil},
+		{"myArray[2:4]", "myArray", convert.NewInt64(2), convert.NewInt64(4)},
+		{"myArray[:4]", "myArray", nil, convert.NewInt64(4)},
+		{"myArray[7:]", "myArray", convert.NewInt64(7), nil},
+		{"myArray[:]", "myArray", nil, nil},
 	}
 
 	for _, tt := range tests {
@@ -580,26 +581,29 @@ func (test *Suite) TestIndexSliceExpressionParsing() {
 			test.T().Fatalf("exp not *ast.ExpressionStatement, got=%T", p.Statements[0])
 		}
 
-		indexExp, ok := stmt.Expression.(*ast.IndexExpression)
+		sliceLiteral, ok := stmt.Expression.(*ast.SliceLiteral)
 		if !ok {
 			test.T().Fatalf("exp not *ast.IndexExpression, got=%T", stmt)
 		}
 
-		sliceExpr, ok := indexExp.Index.(*ast.SliceLiteral)
+		ident, ok := sliceLiteral.Left.(*ast.IdentifierLiteral)
 		if !ok {
-			test.T().Fatalf("exp not *ast.SliceLiteral, got=%T", indexExp.Index)
+			test.T().Fatalf("left not *ast.IdentifierLiteral, got=%T", stmt)
+		}
+		if ident.Value != tt.left {
+			test.T().Fatalf("expected identifier to be=%q, got=%q", tt.left, ident.Value)
 		}
 
-		if tt.left != nil {
-			testIntegerLiteral(test.T(), *sliceExpr.Left, *tt.left)
+		if tt.lower != nil {
+			testIntegerLiteral(test.T(), *sliceLiteral.Lower, *tt.lower)
 		} else {
-			test.Nil(sliceExpr.Left)
+			test.Nil(sliceLiteral.Lower)
 		}
 
-		if tt.right != nil {
-			testIntegerLiteral(test.T(), *sliceExpr.Right, *tt.right)
+		if tt.upper != nil {
+			testIntegerLiteral(test.T(), *sliceLiteral.Upper, *tt.upper)
 		} else {
-			test.Nil(sliceExpr.Right)
+			test.Nil(sliceLiteral.Upper)
 		}
 	}
 }

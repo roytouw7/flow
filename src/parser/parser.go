@@ -81,7 +81,6 @@ func New(l Lexer) Parser {
 	p.prefixParseFns[token.LPAREN] = p.parseLParenExpression
 	p.prefixParseFns[token.STRING_DELIMITER] = p.parseStringLiteral
 	p.prefixParseFns[token.LBRACKET] = p.parseArrayLiteral
-	p.prefixParseFns[token.COLON] = p.parsePrefixSliceLiteralExpression
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.infixParseFns[token.PLUS] = p.parseInfixExpression
@@ -95,8 +94,7 @@ func New(l Lexer) Parser {
 	p.infixParseFns[token.ASSIGN] = p.parseInfixExpression
 	p.infixParseFns[token.QUESTION] = p.parseTernaryExpression
 	p.infixParseFns[token.LPAREN] = p.parseCallExpression
-	p.infixParseFns[token.LBRACKET] = p.parseIndexExpression
-	p.infixParseFns[token.COLON] = p.parseSliceLiteralExpression
+	p.infixParseFns[token.LBRACKET] = p.parseLBracketExpression
 
 	// Set current and peek token
 	p.nextToken()

@@ -11,17 +11,23 @@ import (
 var (
 	arrowFnRegexp     *regexp.Regexp
 	groupedExprRegexp *regexp.Regexp
+	indexRegexp       *regexp.Regexp
+	sliceRegexp       *regexp.Regexp
 )
 
 // todo these regexps should be built from atomic pieces
 const (
 	arrowFnRegexpString     = `\(.*\)\s*=>` // whitespaces now optional because they are removed upon lexing
 	groupedExprRegexpString = `\(.+\)`
+	indexRegexpString       = `\[.*\]`
+	sliceRegexpString       = `\[.*\:.*]`
 )
 
 func init() {
 	arrowFnRegexp = regexp.MustCompile(arrowFnRegexpString)
 	groupedExprRegexp = regexp.MustCompile(groupedExprRegexpString)
+	indexRegexp = regexp.MustCompile(indexRegexpString)
+	sliceRegexp = regexp.MustCompile(sliceRegexpString)
 }
 
 type (

@@ -60,15 +60,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return &object.Array{Elements: elements}
 	case *ast.IndexExpression:
-		left := Eval(node.Left, env)
-		if isError(left) {
-			return left
-		}
-		index := Eval(node.Index, env)
-		if isError(index) {
-			return index
-		}
-		return evalIndexExpression(left, index)
+		return evalIndexExpression(node, env)
+	case *ast.SliceLiteral:
+		return evalSliceExpression(node, env)
 	}
 
 	return nil
@@ -360,25 +354,61 @@ func evalStringLiteral(s *ast.StringLiteral, env *object.Environment) object.Obj
 	return &o
 }
 
-func evalIndexExpression(left, index object.Object) object.Object {
-	switch {
-	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
-		return evalArrayIndexExpression(left, index)
-	default:
-		return newEvalErrorObject("index operator not support for array literal: %s", left.Type())
+func evalIndexExpression(node *ast.IndexExpression, env *object.Environment) object.Object {
+	left := Eval(node.Left, env)
+	idx := Eval(node.Index, env)
+
+	if array, ok := left.(*object.Array); ok {
+		if intIdx, ok := idx.(*object.Integer); ok {
+			max := int64(len(array.Elements) - 1)
+			if intIdx.Value < 0 || intIdx.Value > max {
+				return NULL
+			}
+			return array.Elements[intIdx.Value]
+		}
 	}
+
+	return newEvalErrorObject("indexing for type %T not implemented", node.Left)
 }
 
-func evalArrayIndexExpression(array, index object.Object) object.Object {
-	arrayObject := array.(*object.Array)
-	idx := index.(*object.Integer).Value
-	max := int64(len(arrayObject.Elements) - 1)
+func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object.Object {
+	var (
+		left  object.Object
+		lower *object.Integer
+		upper *object.Integer
+	)
 
-	if idx < 0 || idx > max {
-		return NULL
+	left = Eval(node.Left, env)
+	if node.Lower != nil {
+		val := Eval(*node.Lower, env)
+		if intObj, ok := val.(*object.Integer); ok {
+			lower = intObj
+		} else {
+			return newEvalErrorObject("lower bound of slice must be of type integer got=%s", val.Type())
+		}
+	}
+	if node.Upper != nil {
+		val := Eval(*node.Upper, env)
+		if intObj, ok := val.(*object.Integer); ok {
+			upper = intObj
+		} else {
+			return newEvalErrorObject("lower bound of slice must be of type integer got=%s", val.Type())
+		}
 	}
 
-	return arrayObject.Elements[idx]
+	if array, ok := left.(*object.Array); ok {
+		if lower != nil && upper != nil {
+			return &object.Array{Elements: array.Elements[lower.Value:upper.Value]}
+		} else if lower != nil {
+			return &object.Array{Elements: array.Elements[lower.Value:]}
+		} else if upper != nil {
+			return &object.Array{Elements: array.Elements[:upper.Value]}
+		}
+
+		return &object.Array{Elements: array.Elements}
+	}
+
+	return newEvalErrorObject("indexing for type %T not implemented", node.Left)
 }
 
 func toString(obj object.Object) string {

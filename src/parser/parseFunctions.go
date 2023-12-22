@@ -318,6 +318,34 @@ func (p *parser) parseArrayLiteral() ast.Expression {
 	return array
 }
 
+func (p *parser) parseLBracketExpression(left ast.Expression) ast.Expression {
+	var (
+		sliceParseFn infixParseFn = p.parseSliceLiteralExpression
+		indexParseFn infixParseFn = p.parseIndexExpression
+	)
+
+	templates := []template{
+		{
+			match: sliceRegexp,
+			fn:    sliceParseFn,
+			limit: nil,
+		},
+		{
+			match: indexRegexp,
+			fn:    indexParseFn,
+			limit: nil,
+		},
+	}
+
+	parseFn := p.parseFnTemplateMatch(templates)
+
+	if fn, ok := parseFn.(infixParseFn); ok {
+		return fn(left)
+	}
+
+	return nil
+}
+
 func (p *parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp := &ast.IndexExpression{Token: *p.curToken, Left: left}
 
@@ -334,7 +362,7 @@ func (p *parser) parseIndexExpression(left ast.Expression) ast.Expression {
 }
 
 func (p *parser) parseSliceLiteralExpression(left ast.Expression) ast.Expression {
-	exp := &ast.SliceLiteral{Token: *p.curToken, Left: &left}
+	exp := &ast.SliceLiteral{Token: *p.curToken, Left: left}
 
 	if p.peekToken.Type == token.RBRACKET {
 		return exp
@@ -342,23 +370,31 @@ func (p *parser) parseSliceLiteralExpression(left ast.Expression) ast.Expression
 
 	p.nextToken()
 
-	right := p.parseExpression(LOWEST)
-	exp.Right = &right
 
-	return exp
-}
+	if p.curToken.Type != token.COLON {
+		lower := p.parseExpression(SLICE)
+		exp.Lower = &lower
+		p.nextToken()
+	}
 
-func (p *parser) parsePrefixSliceLiteralExpression() ast.Expression {
-	exp := &ast.SliceLiteral{Token: *p.curToken}
-
-	if p.peekToken.Type == token.RBRACKET {
-		return exp
+	if p.curToken.Type != token.COLON {
+		panic("No slice literal")
 	}
 
 	p.nextToken()
 
-	right := p.parseExpression(LOWEST)
-	exp.Right = &right
+	if p.curToken.Type == token.RBRACKET {
+		return exp
+	}
+
+	upper := p.parseExpression(SLICE)
+	exp.Upper = &upper
+
+	p.nextToken()
+
+	if p.curToken.Type != token.RBRACKET {
+		panic("Not closing array index")
+	}
 
 	return exp
 }
