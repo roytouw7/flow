@@ -193,7 +193,7 @@ func (test *Suite) TestErrorHandling() {
 		{"5; true + false; 5;", "unknown operator: BOOLEAN + BOOLEAN", 3},
 		{"if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN", 1},
 		{"foobar", "identifier not found: foobar", 1},
-		{"7 = 9;", "can't assign to non-identifier type, got=*ast.IntegerLiteral", 1},
+		{"7 = 9;", "can't assign to give type *ast.IntegerLiteral", 1},
 		{"a = 9;", "identifier not found: \"a\"", 1},
 		{"let a = a;", "identifier not found: a", 1},
 	}
@@ -338,6 +338,9 @@ func (test *Suite) TestArrayIndexing() {
 		{"[1, 2, 3][1:2];", []int{2}, 1},
 		{"let i = 0; let j = 2; [1, 2, 3][i:j];", []int{1, 2}, 3},
 		{"let myArray = [1, 2, 3]; let lower = 1 + 0; let upper = 1 + 1; myArray[lower:upper];", []int{2}, 4},
+		{"[1,2,3][1] = 7;", nil, 1},
+		{"let arr = [1, 2, 3]; arr[2] = 7; arr[2];", 7, 3},
+		{"let arr = [1, 2, 3]; let b = arr[:]; arr[0] = 7; b[0];", 1, 4},
 	}
 
 	for _, tt := range tests {

@@ -190,6 +190,10 @@ func unwrapObservable(o object.Object, env *object.Environment) *object.Object {
 }
 
 func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.Object {
+	if sliceLiteral, ok := node.Value.(*ast.SliceLiteral); ok {
+		c := shallowCopySliceLiteral(sliceLiteral, env)
+		node.Value = c
+	}
 	val := Eval(node.Value, env)
 	if isError(val) {
 		return val
@@ -208,11 +212,17 @@ func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.O
 }
 
 func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
-	identifier, ok := node.Left.(*ast.IdentifierLiteral)
-	if !ok {
-		return newEvalErrorObject("can't assign to non-identifier type, got=%T", node.Left)
+	switch left := node.Left.(type) {
+	case *ast.IdentifierLiteral:
+		return evalAssignIdentifier(left, &node.Right, env)
+	case *ast.IndexExpression:
+		return evalAssignIndexExpr(left, left.Index, &node.Right, env)
+	default:
+		return newEvalErrorObject("can't assign to give type %T", node.Left)
 	}
+}
 
+func evalAssignIdentifier(identifier *ast.IdentifierLiteral, right *ast.Expression, env *object.Environment) object.Object {
 	expr, ok := env.Get(identifier.Value)
 	if !ok {
 		return newEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
@@ -221,11 +231,44 @@ func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment
 	val := Eval(*expr, env)
 
 	if observable, ok := val.(*object.Observable); ok {
-		observable.Value = &node.Right
-		observable.NotifyAll(&node.Right)
+		observable.Value = right
+		observable.NotifyAll(right)
 	} else {
-		substituted := substituteSelfReference(node.Right, identifier.Value, expr)
+		substituted := substituteSelfReference(*right, identifier.Value, expr)
 		env.Set(identifier.Value, &substituted)
+	}
+
+	return NULL
+}
+
+func evalAssignIndexExpr(indexExpr *ast.IndexExpression, index ast.Expression, value *ast.Expression, env *object.Environment) object.Object {
+	var (
+		array    *ast.ArrayLiteral
+		indexInt *ast.IntegerLiteral
+	)
+
+	indexInt, ok := index.(*ast.IntegerLiteral)
+	if !ok {
+		return newEvalErrorObject("expected integer for indexing array, got=%T", index)
+	}
+
+	if array, ok = indexExpr.Left.(*ast.ArrayLiteral); ok { // if index is used on array directly
+		array.Elements[indexInt.Value] = *value
+
+		return NULL
+	} else if identifier, ok := indexExpr.Left.(*ast.IdentifierLiteral); ok { // if index is used on identifier referencing array
+		currentValue, ok := env.Get(identifier.Value)
+		if !ok {
+			return newEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
+		}
+		array, ok = (*currentValue).(*ast.ArrayLiteral)
+		if !ok {
+			return newEvalErrorObject(fmt.Sprintf("identifier not array, got=%T", currentValue))
+		}
+
+		array.Elements[indexInt.Value] = *value
+	} else {
+		return newEvalErrorObject("expected array for index expression, got =%T", indexExpr.Left)
 	}
 
 	return NULL
@@ -373,12 +416,16 @@ func evalIndexExpression(node *ast.IndexExpression, env *object.Environment) obj
 
 func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object.Object {
 	var (
-		left  object.Object
 		lower *object.Integer
 		upper *object.Integer
 	)
 
-	left = Eval(node.Left, env)
+	evaluated := Eval(node.Left, env)
+	array, ok := evaluated.(*object.Array)
+	if !ok {
+		return newEvalErrorObject("indexing for type %T not implemented", node.Left)
+	}
+
 	if node.Lower != nil {
 		val := Eval(*node.Lower, env)
 		if intObj, ok := val.(*object.Integer); ok {
@@ -396,19 +443,54 @@ func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object
 		}
 	}
 
-	if array, ok := left.(*object.Array); ok {
-		if lower != nil && upper != nil {
-			return &object.Array{Elements: array.Elements[lower.Value:upper.Value]}
-		} else if lower != nil {
-			return &object.Array{Elements: array.Elements[lower.Value:]}
-		} else if upper != nil {
-			return &object.Array{Elements: array.Elements[:upper.Value]}
-		}
-
-		return &object.Array{Elements: array.Elements}
+	if lower != nil && upper != nil {
+		return &object.Array{Elements: array.Elements[lower.Value:upper.Value]}
+	} else if lower != nil {
+		return &object.Array{Elements: array.Elements[lower.Value:]}
+	} else if upper != nil {
+		return &object.Array{Elements: array.Elements[:upper.Value]}
 	}
 
-	return newEvalErrorObject("indexing for type %T not implemented", node.Left)
+	return &object.Array{Elements: array.Elements}
+
+}
+
+// copyArray makes a shallow copy of the array
+func copyArray[T any](source []T) []T {
+	result := make([]T, len(source))
+	copy(result, source)
+	return result
+}
+
+// shallowCopySliceLiteral makes a shallow slice copy, when slicing of identifier which points to array it makes a shallow copy to slice on
+func shallowCopySliceLiteral(slice *ast.SliceLiteral, env *object.Environment) *ast.SliceLiteral {
+	if _, ok := slice.Left.(*ast.ArrayLiteral); ok {
+		return slice
+	}
+	id, ok := slice.Left.(*ast.IdentifierLiteral)
+	if !ok {
+		panic(fmt.Sprintf("expected slice.left to be of type *ast.IdentifierLiteral got=%T", slice.Left))
+	}
+	identifierValue, ok := env.Get(id.Value)
+	if !ok {
+		panic(fmt.Sprintf("identifier %q not found, unable to slice on", id.Value))
+	}
+	array, ok := (*identifierValue).(*ast.ArrayLiteral)
+	if !ok {
+		panic(fmt.Sprintf("slice not supported for type %T", identifierValue))
+	}
+
+	newArray := ast.ArrayLiteral{
+		Token:     array.Token,
+		Elements:  copyArray(array.Elements),
+		Generator: array.Generator,
+	}
+	return &ast.SliceLiteral{
+		Token: slice.Token,
+		Left:  &newArray,
+		Lower: slice.Lower,
+		Upper: slice.Upper,
+	}
 }
 
 func toString(obj object.Object) string {
