@@ -2,9 +2,6 @@
 # Created by https://www.toptal.com/developers/gitignore/api/go,goland,jetbrains
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,goland,jetbrains
 
-# dev executable
-/run/
-
 ### Go ###
 # Binaries for programs and plugins
 *.exe
@@ -186,4 +183,3 @@ fabric.properties
 .idea/codestream.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/go,goland,jetbrains
-src/run/
