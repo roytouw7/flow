@@ -18,8 +18,18 @@ func (s *SliceLiteral) TokenLiteral() string {
 	return s.Token.Literal
 }
 func (s *SliceLiteral) String() string {
-	lowerStr := (*(*s).Lower).String()
-	upperStr := (*(*s).Upper).String()
+	var (
+		lowerStr string
+		upperStr string
+	)
+
+	if s.Lower != nil {
+		lowerStr = (*(*s).Lower).String()
+
+	}
+	if s.Upper != nil {
+		upperStr = (*(*s).Upper).String()
+	}
 
 	if s.Lower != nil && s.Upper != nil {
 		return fmt.Sprintf("(%s[%s:%s])", s.Left.String(), lowerStr, upperStr)
