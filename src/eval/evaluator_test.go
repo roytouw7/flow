@@ -295,61 +295,53 @@ func (test *Suite) TestNativeFunctions() {
 	}
 }
 
-func testEval(t *testing.T, input string, expectedStatements int, env *object.Environment) object.Object {
-	p := parser.CreateProgram(t, input, expectedStatements)
-	return Eval(p, env)
-}
+func (test *Suite) TestArrayLiteral() {
+	input := "[1, 2 * 2, 3 + 3];"
 
-func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
-	result, ok := obj.(*object.Integer)
+	p := parser.CreateProgram(test.T(), input, 1)
+	env := object.NewEnvironment()
+	evaluated := Eval(p, env)
+
+	array, ok := evaluated.(*object.Array)
 	if !ok {
-		t.Errorf("object is not Integer, got=%T (%+v)", obj, obj)
-		return false
+		test.T().Errorf("Object is not array, got=%T (%+v)", evaluated, evaluated)
 	}
 
-	if result.Value != expected {
-		t.Errorf("object has wrong value, got=%d, expected=%d", result.Value, expected)
-		return false
+	if len(array.Elements) != 3 {
+		test.T().Errorf("Expected array to have length 3, got=%d", len(array.Elements))
 	}
 
-	return true
+	testIntegerObject(test.T(), array.Elements[0], 1)
+	testIntegerObject(test.T(), array.Elements[1], 4)
+	testIntegerObject(test.T(), array.Elements[2], 6)
 }
 
-func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
-	result, ok := obj.(*object.Boolean)
-	if !ok {
-		t.Errorf("object is not Boolean, got=%T (%+v)", obj, obj)
-		return false
+func (test *Suite) TestArrayIndexing() {
+	tests := []struct {
+		input    string
+		expected interface{}
+		stmts    int
+	}{
+		{"[1, 2, 3][0]", 1, 1},
+		{"[1, 2, 3][1]", 2, 1},
+		{"[1, 2, 3][2]", 3, 1},
+		{"let i = 0; [1][i]", 1, 2},
+		{"[1, 2, 3][1 + 1]", 3, 1},
+		{"let myArray = [1, 2, 3]; myArray[2];", 3, 2},
+		{"let myArray = [1, 2, 3]; let i = myArray[0] + myArray[1] + myArray[2]; i;", 6, 3},
+		{"let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i];", 2, 3},
+		{"[1, 2, 3][3]", nil, 1}, // todo might want to return error here...?
+		{"[1, 2, 3][-1]", nil, 1}, // todo might want to return 3 here...?
 	}
 
-	if result.Value != expected {
-		t.Errorf("object has wrong value, got=%t, expected=%t", result.Value, expected)
-		return false
+	for _, tt := range tests {
+		env := object.NewEnvironment()
+		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
+		integer, ok := tt.expected.(int)
+		if ok {
+			testIntegerObject(test.T(), evaluated, int64(integer))
+		} else {
+			testNullObject(test.T(), evaluated)
+		}
 	}
-
-	return true
-}
-
-func testStringObject(t *testing.T, obj object.Object, expected string) bool {
-	result, ok := obj.(*object.String)
-	if !ok {
-		t.Errorf("object is not String, got=%T (%v)", obj, obj)
-		return false
-	}
-
-	if result.Value != expected {
-		t.Errorf("object has wrong value, got=%s, expected=%s", result.Value, expected)
-		return false
-	}
-
-	return true
-}
-
-func testNullObject(t *testing.T, obj object.Object) bool {
-	if obj != NULL {
-		t.Errorf("Object is not NULL, got=%T (%+v)", obj, obj)
-		return false
-	}
-
-	return true
 }
