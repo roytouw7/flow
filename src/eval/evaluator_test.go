@@ -359,3 +359,16 @@ func (test *Suite) TestArrayIndexing() {
 		}
 	}
 }
+
+func (test *Suite) TestEvaluatingHigherOrderFunctions() {
+	program := parser.CreateProgramFromFile(test.T(), "./test_assets/higher_order_functions.flow", 3)
+	env := object.NewEnvironment()
+	evaluated := Eval(program, env)
+	array, ok := evaluated.(*object.Array)
+	if !ok {
+		test.T().Errorf("Object is not array, got=%T (%+v)", evaluated, evaluated)
+	}
+	testIntegerObject(test.T(), array.Elements[0], 1)
+	testIntegerObject(test.T(), array.Elements[1], 2)
+	testIntegerObject(test.T(), array.Elements[2], 3)
+}

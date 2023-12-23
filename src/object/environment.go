@@ -20,6 +20,14 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 
 func (e *Environment) Get(name string) (*ast.Expression, bool) {
 	obj, ok := e.store[name]
+	if ok {	// if identifier points to itself, try finding identifier of outer scope to prevent infinite self referencing get
+		if idx, isIdx := (*obj).(*ast.IdentifierLiteral); isIdx {
+			if idx.Value == name {
+				ok = false
+			}
+		}
+	}
+
 	if !ok && e.outer != nil {
 		obj, ok = e.outer.Get(name)
 	}

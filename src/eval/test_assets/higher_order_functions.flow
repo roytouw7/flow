@@ -1,0 +1,11 @@
+let fn = (arr) => {
+    return arr;
+}
+
+let a = (f) => {
+    return (arr) => {
+        return f(arr);
+    }
+}
+
+a(fn)([1, 2, 3]);
