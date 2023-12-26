@@ -117,7 +117,7 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 func applyFunction(fn object.Object, args []ast.Expression, env *object.Environment) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:
-		extendedEnv := extendFunctionEnv(fn, args)
+		extendedEnv := extendFunctionEnv(fn, args) // todo on function apply we don't want value streams for now, how to evaluate this with circular references?
 		evaluated := Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
 	case *object.NativeFunc:
@@ -164,7 +164,9 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 		return evalAssignmentExpression(node, env)
 	}
 
-	operator, left, right := node.Operator, *unwrapObservable(Eval(node.Left, env), env), *unwrapObservable(Eval(node.Right, env), env)
+	operator := node.Operator
+	left := *unwrapObservable(Eval(env.ReplaceWithOuterScopeValue2(node.Left), env), env)
+	right := *unwrapObservable(Eval(env.ReplaceWithOuterScopeValue2(node.Right), env), env)
 
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -234,8 +236,8 @@ func evalAssignIdentifier(identifier *ast.IdentifierLiteral, right *ast.Expressi
 		observable.Value = right
 		observable.NotifyAll(right)
 	} else {
-		substituted := substituteSelfReference(*right, identifier.Value, expr)
-		env.Set(identifier.Value, &substituted)
+		//substituted := substituteSelfReference(*right, identifier.Value, expr) // todo check if this is still required
+		env.Set(identifier.Value, right)
 	}
 
 	return NULL
@@ -272,29 +274,6 @@ func evalAssignIndexExpr(indexExpr *ast.IndexExpression, index ast.Expression, v
 	}
 
 	return NULL
-}
-
-// substituteSelfReference evaluation results in stack overflow if assignment is self referencing like a = a;
-func substituteSelfReference(node ast.Expression, self string, value *ast.Expression) ast.Expression {
-	switch node := node.(type) {
-	case *ast.IdentifierLiteral:
-		if node.Value == self { // identifier is self referencing, substitute for the value
-			return *value
-		}
-		return node
-	case *ast.PrefixExpression:
-		right := substituteSelfReference(node.Right, self, value)
-		node.Right = right
-		return node
-	case *ast.InfixExpression:
-		left := substituteSelfReference(node.Left, self, value)
-		right := substituteSelfReference(node.Right, self, value)
-		node.Left = left
-		node.Right = right
-		return node
-	default:
-		return node
-	}
 }
 
 func evalIdentifier(node *ast.IdentifierLiteral, env *object.Environment) object.Object {

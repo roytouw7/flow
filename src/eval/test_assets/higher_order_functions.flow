@@ -1,11 +1,8 @@
-let fn = (arr) => {
-    return arr;
-}
-
-let a = (f) => {
-    return (arr) => {
-        return f(arr);
+let fn = (n) => {
+    if (n > 0) {
+        return fn(n - 1);
     }
+    return n;
 }
 
-a(fn)([1, 2, 3]);
+fn(2);
