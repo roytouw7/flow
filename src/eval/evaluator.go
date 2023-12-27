@@ -37,7 +37,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.IfExpression:
 		return evalIfExpression(node, env)
 	case *ast.ReturnStatement:
-		val := Eval(node.ReturnValue, env)
+		val := Eval(env.SubstituteReferences(node.ReturnValue, nil), env)
 		return &object.ReturnValue{Value: val}
 	case *ast.LetStatement:
 		return evalLetExpression(node, env)
@@ -117,7 +117,7 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 func applyFunction(fn object.Object, args []ast.Expression, env *object.Environment) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:
-		extendedEnv := extendFunctionEnv(fn, args) // todo on function apply we don't want value streams for now, how to evaluate this with circular references?
+		extendedEnv := extendFunctionEnv(fn, args)
 		evaluated := Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
 	case *object.NativeFunc:
@@ -165,8 +165,15 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	}
 
 	operator := node.Operator
-	left := *unwrapObservable(Eval(env.ReplaceWithOuterScopeValue2(node.Left), env), env)
-	right := *unwrapObservable(Eval(env.ReplaceWithOuterScopeValue2(node.Right), env), env)
+	fixed, ok := env.SubstituteReferences(node, nil).(*ast.InfixExpression) // todo rename fixe to something better
+	if !ok {
+		panic("infix expr broke after replacing identifiers!")
+	}
+
+	node = fixed
+
+	left := *unwrapObservable(Eval(node.Left, env), env)
+	right := *unwrapObservable(Eval(node.Right, env), env)
 
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -236,8 +243,8 @@ func evalAssignIdentifier(identifier *ast.IdentifierLiteral, right *ast.Expressi
 		observable.Value = right
 		observable.NotifyAll(right)
 	} else {
-		//substituted := substituteSelfReference(*right, identifier.Value, expr) // todo check if this is still required
-		env.Set(identifier.Value, right)
+		withoutSelfReferences := env.SubstituteReferences(*right, &identifier.Value)
+		env.Set(identifier.Value, &withoutSelfReferences)
 	}
 
 	return NULL

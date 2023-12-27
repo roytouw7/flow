@@ -22,15 +22,9 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 	return env
 }
 
+// Get recursively tries finding value for name in environment and outer environments
 func (e *Environment) Get(name string) (*ast.Expression, bool) {
 	obj, ok := e.store[name]
-	if ok { // if identifier points to itself, try finding identifier of outer scope to prevent infinite self referencing get
-		if idx, isIdx := (*obj).(*ast.IdentifierLiteral); isIdx {
-			if idx.Value == name {
-				ok = false
-			}
-		}
-	}
 
 	if !ok && e.outer != nil {
 		obj, ok = e.outer.Get(name)
@@ -48,93 +42,53 @@ func (e *Environment) mustGet(name string) *ast.Expression {
 }
 
 func (e *Environment) Set(name string, val *ast.Expression) *ast.Expression {
-	//if _, isIdx := (*val).(*ast.IdentifierLiteral); isIdx {
-	//	panic(fmt.Sprintf("self referencing idx, %q", name))
-	//}
 	e.store[name] = val
 	return val
 }
 
-func (e *Environment) replaceIdentifier(node ast.Expression) ast.Expression {
+// SubstituteReferences substitutes identifiers with their value from the environment
+// when a name is given only identifiers matching the name are substituted
+func (e *Environment) SubstituteReferences(node ast.Expression, name *string) ast.Expression {
 	switch node := node.(type) {
 	case *ast.IdentifierLiteral:
-		val := *e.mustGet(node.Value)
-		return e.replaceIdentifier(val)
+		if name == nil || *name == node.Value {
+			val, ok := e.Get(node.Value)
+			if !ok {
+				panic(fmt.Sprintf("could not find identifier %s in environment or outer environments", node.Value))
+			}
+			if e.outer != nil {
+				return e.outer.SubstituteReferences(*val, nil)
+			}
+			return *val
+		}
+		return node
 	case *ast.PrefixExpression:
-		right := e.replaceIdentifier(node.Right)
-		node.Right = right
-		return node
+		right := e.SubstituteReferences(node.Right, name)
+		return &ast.PrefixExpression{
+			Token:    node.Token,
+			Operator: node.Operator,
+			Right:    right,
+		}
 	case *ast.InfixExpression:
-		left := e.replaceIdentifier(node.Left)
-		right := e.replaceIdentifier(node.Right)
-		node.Left = left
-		node.Right = right
-		return node
+		var left, right ast.Expression
+		if node.Operator == "=" { // don't substitute left hand side of assignment expression
+			if identifier, ok := node.Left.(*ast.IdentifierLiteral); ok {
+				right = e.SubstituteReferences(node.Right, &identifier.Value)
+			} else {
+				panic(fmt.Sprintf("expected left hand side of assignment expression to be identifier literal, got=%T", node.Left))
+			}
+			left = node.Left
+		} else {
+			left = e.SubstituteReferences(node.Left, name)
+			right = e.SubstituteReferences(node.Right, name)
+		}
+		return &ast.InfixExpression{
+			Token:    node.Token,
+			Left:     left,
+			Operator: node.Operator,
+			Right:    right,
+		}
 	default:
 		return node
 	}
-}
-
-// ReplaceWithOuterScopeValue first try getting it from the current scope, then pass it in again with the outer scope
-func (e *Environment) ReplaceWithOuterScopeValue(node ast.Expression) ast.Expression {
-	if e.outer != nil {
-		switch node := node.(type) {
-		case *ast.IdentifierLiteral:
-			val, ok := e.Get(node.Value)
-			if ok {
-				return e.outer.ReplaceWithOuterScopeValue(*val) // when value found pass this
-			}
-			return node // else pass identifier and try outer scope
-		case *ast.PrefixExpression:
-			right := e.ReplaceWithOuterScopeValue(node.Right)
-			node.Right = right
-			return node
-		case *ast.InfixExpression:
-			left := e.ReplaceWithOuterScopeValue(node.Left)
-			node.Left = left
-			right := e.ReplaceWithOuterScopeValue(node.Right)
-			node.Right = right
-			return node
-		default:
-			return node
-		}
-	}
-
-	return e.replaceIdentifier(node)
-}
-
-func (e *Environment) ReplaceWithOuterScopeValue2(node ast.Expression) ast.Expression {
-	if e.outer != nil {
-		switch node := node.(type) {
-		case *ast.IdentifierLiteral:
-			val, ok := e.Get(node.Value)
-			if ok {
-				return e.outer.ReplaceWithOuterScopeValue2(*val) // when value found pass this
-			}
-			return node // else pass identifier and try outer scope
-
-		case *ast.PrefixExpression:
-			right := e.ReplaceWithOuterScopeValue2(node.Right)
-			// Create a new PrefixExpression with the updated right expression
-			return &ast.PrefixExpression{
-				Operator: node.Operator,
-				Right:    right,
-			}
-
-		case *ast.InfixExpression:
-			left := e.ReplaceWithOuterScopeValue2(node.Left)
-			right := e.ReplaceWithOuterScopeValue2(node.Right)
-			// Create a new InfixExpression with the updated left and right expressions
-			return &ast.InfixExpression{
-				Operator: node.Operator,
-				Left:     left,
-				Right:    right,
-			}
-
-		default:
-			return node
-		}
-	}
-
-	return e.replaceIdentifier(node)
 }
