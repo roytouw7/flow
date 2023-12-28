@@ -12,6 +12,9 @@ var builtins = map[string]*object.NativeFunc{
 			return flowLen(args...)
 		},
 	},
+	"print": {
+		Fn: print,
+	},
 }
 
 func flowLen(args ...object.Object) object.Object {
@@ -26,4 +29,12 @@ func flowLen(args ...object.Object) object.Object {
 	default:
 		return newEvalErrorObject(fmt.Sprintf("argument to \"len\" not supported, got=%T", args[0]))
 	}
+}
+
+func print(args ...object.Object) object.Object {
+	for _, arg := range args {
+		fmt.Println(arg.Inspect())
+	}
+
+	return NULL
 }
