@@ -260,7 +260,7 @@ func (test *Suite) TestPeekN() {
 			output: expected{true, token.New(token.RBRACE, "}", 1, 6)},
 		},
 		{
-			input:  250,
+			input:  2500,
 			output: expected{false, nil},
 		},
 	}
