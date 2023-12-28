@@ -366,3 +366,10 @@ func (test *Suite) TestEvaluatingHigherOrderFunctions() {
 	evaluated := Eval(program, env)
 	testIntegerObject(test.T(), evaluated, 0)
 }
+
+func (test *Suite) TestEvaluatingSum() {
+	program := parser.CreateProgramFromFile(test.T(), "./test_assets/sum.flow", 2)
+	env := object.NewEnvironment()
+	evaluated := Eval(program, env)
+	testIntegerObject(test.T(), evaluated, 6)
+}

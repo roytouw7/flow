@@ -19,8 +19,8 @@ var (
 const (
 	arrowFnRegexpString     = `\(.*\)\s*=>` // whitespaces now optional because they are removed upon lexing
 	groupedExprRegexpString = `\(.+\)`
-	indexRegexpString       = `\[.*\]`
-	sliceRegexpString       = `\[.*\:.*]`
+	indexRegexpString       = `^\[[^\:]*\]$`
+	sliceRegexpString       = `^\[\s*(\d*|\w*)\s*\:\s*(\d*|\w*)\s*\]$`
 )
 
 func init() {

@@ -384,8 +384,8 @@ func evalStringLiteral(s *ast.StringLiteral, env *object.Environment) object.Obj
 }
 
 func evalIndexExpression(node *ast.IndexExpression, env *object.Environment) object.Object {
-	left := Eval(node.Left, env)
-	idx := Eval(node.Index, env)
+	left := Eval(env.SubstituteReferences(node.Left, nil), env)
+	idx := Eval(env.SubstituteReferences(node.Index, nil), env)
 
 	if array, ok := left.(*object.Array); ok {
 		if intIdx, ok := idx.(*object.Integer); ok {
@@ -406,7 +406,7 @@ func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object
 		upper *object.Integer
 	)
 
-	evaluated := Eval(node.Left, env)
+	evaluated := Eval(env.SubstituteReferences(node.Left, nil), env)
 	array, ok := evaluated.(*object.Array)
 	if !ok {
 		return newEvalErrorObject("indexing for type %T not implemented", node.Left)
@@ -429,7 +429,9 @@ func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object
 		}
 	}
 
-	if lower != nil && upper != nil {
+	if len(array.Elements) == 0 {
+		return &object.Array{}
+	} else if lower != nil && upper != nil {
 		return &object.Array{Elements: array.Elements[lower.Value:upper.Value]}
 	} else if lower != nil {
 		return &object.Array{Elements: array.Elements[lower.Value:]}

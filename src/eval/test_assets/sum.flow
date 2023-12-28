@@ -1,0 +1,8 @@
+let fn = (arr, sum) => {
+    if (len(arr) > 0) {
+        return fn(arr[1:], sum + arr[0]);
+    }
+    return sum;
+}
+
+fn([1, 2, 3], 0);

@@ -9,29 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//func (test *Suite) TestReplaceWithOuterScopeValue() {
-//	var n ast.Expression = &(ast.IntegerLiteral{Value: 4})
-//	n1 := createN1Infix("n", "-", *createInteger(1))
-//	n2 := createN1Infix("n", "-", *createInteger(1))
-//	n3 := createN1Infix("n", "-", *createInteger(1))
-//	n4 := createN1Infix("n", "-", *createInteger(1))
-//	// n4 should evaluate to ((((4 - 1) - 1) - 1) - 1) => 0
-//
-//	env := object.NewEnvironment()
-//	env.Set("n", &n)
-//	env = object.NewEnclosedEnvironment(env)
-//	env.Set("n", &n1)
-//	env = object.NewEnclosedEnvironment(env)
-//	env.Set("n", &n2)
-//	env = object.NewEnclosedEnvironment(env)
-//	env.Set("n", &n3)
-//	env = object.NewEnclosedEnvironment(env)
-//
-//	substituted := env.ReplaceWithOuterScopeValue2(n4)
-//	result := Eval(substituted, env)
-//	testIntegerObject(test.T(), result, 0)
-//}
-
 func (test *Suite) TestSubstituteReferencesWithAssignment() {
 	// x = x + y + 7 with y in an outer environment
 	env := object.NewEnvironment()

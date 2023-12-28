@@ -88,6 +88,14 @@ func (e *Environment) SubstituteReferences(node ast.Expression, name *string) as
 			Operator: node.Operator,
 			Right:    right,
 		}
+	case *ast.SliceLiteral:
+		left := e.SubstituteReferences(node.Left, name)
+		return &ast.SliceLiteral{
+			Token: node.Token,
+			Left:  left,
+			Lower: node.Lower,
+			Upper: node.Upper,
+		}
 	default:
 		return node
 	}
