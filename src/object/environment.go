@@ -52,6 +52,9 @@ func (e *Environment) SubstituteReferences(node ast.Expression, name *string) as
 	switch node := node.(type) {
 	case *ast.IdentifierLiteral:
 		if name == nil || *name == node.Value {
+			if _, ok := Builtins[node.Value]; ok {
+				return node
+			}
 			val, ok := e.Get(node.Value)
 			if !ok {
 				panic(fmt.Sprintf("could not find identifier %s in environment or outer environments", node.Value))
@@ -74,6 +77,8 @@ func (e *Environment) SubstituteReferences(node ast.Expression, name *string) as
 		if node.Operator == "=" { // don't substitute left hand side of assignment expression
 			if identifier, ok := node.Left.(*ast.IdentifierLiteral); ok {
 				right = e.SubstituteReferences(node.Right, &identifier.Value)
+			} else if _, ok := node.Left.(*ast.IndexExpression); ok {
+				right = e.SubstituteReferences(node.Right, nil)
 			} else {
 				panic(fmt.Sprintf("expected left hand side of assignment expression to be identifier literal, got=%T", node.Left))
 			}
@@ -95,6 +100,13 @@ func (e *Environment) SubstituteReferences(node ast.Expression, name *string) as
 			Left:  left,
 			Lower: node.Lower,
 			Upper: node.Upper,
+		}
+	case *ast.IndexExpression:
+		left := e.SubstituteReferences(node.Left, name)
+		return &ast.IndexExpression{
+			Token: node.Token,
+			Left:  left,
+			Index: node.Index,
 		}
 	default:
 		return node

@@ -17,3 +17,7 @@ func (e *EvalError) Type() ObjectType {
 func (e *EvalError) Inspect() string {
 	return fmt.Sprintf("ERROR: %s", e.Message)
 }
+
+func NewEvalErrorObject(format string, a ...interface{}) *EvalError {
+	return &EvalError{Message: fmt.Sprintf(format, a...)}
+}

@@ -11,13 +11,30 @@ import (
 	"Flow/src/utility/slice"
 )
 
-var (
-	NULL  = &object.Null{}
-	TRUE  = &object.Boolean{Value: true}
-	FALSE = &object.Boolean{Value: false}
-)
+//func substituteWithErrorHandling(node *ast.Node, environment *object.Environment) object.Object {
+//	var err object.Object
+//
+//	defer func() {
+//		if r := recover(); r != nil {
+//			err = object.NewEvalErrorObject("")
+//		}
+//	}()
+//
+//	n =
+//
+//	if expr, ok := node.(*ast.Expression); ok {
+//		node = env.SubstituteReferences(expr, nil)
+//	}
+//
+//	return err
+//}
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
+
+	if expr, ok := node.(ast.Expression); ok {
+		node = env.SubstituteReferences(expr, nil)
+	}
+
 	switch node := node.(type) {
 	case *ast.Program:
 		return evalProgram(node, env)
@@ -37,7 +54,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.IfExpression:
 		return evalIfExpression(node, env)
 	case *ast.ReturnStatement:
-		val := Eval(env.SubstituteReferences(node.ReturnValue, nil), env)
+		val := Eval(node.ReturnValue, env)
 		return &object.ReturnValue{Value: val}
 	case *ast.LetStatement:
 		return evalLetExpression(node, env)
@@ -126,7 +143,7 @@ func applyFunction(fn object.Object, args []ast.Expression, env *object.Environm
 		})
 		return fn.Fn(evaluatedArgs...)
 	default:
-		return newEvalErrorObject("not a function: %s", fn.Type())
+		return object.NewEvalErrorObject("not a function: %s", fn.Type())
 	}
 }
 
@@ -155,7 +172,7 @@ func evalPrefixExpression(operator string, right object.Object, token token.Toke
 	case "-":
 		return evalMinusPrefixOperatorExpression(right, token)
 	default:
-		return newEvalErrorObject("%sunknown operator: %s%s", tokenToPos(token), operator, right.Type())
+		return object.NewEvalErrorObject("%sunknown operator: %s%s", tokenToPos(token), operator, right.Type())
 	}
 }
 
@@ -165,13 +182,6 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	}
 
 	operator := node.Operator
-	fixed, ok := env.SubstituteReferences(node, nil).(*ast.InfixExpression) // todo rename fixe to something better
-	if !ok {
-		panic("infix expr broke after replacing identifiers!")
-	}
-
-	node = fixed
-
 	left := *unwrapObservable(Eval(node.Left, env), env)
 	right := *unwrapObservable(Eval(node.Right, env), env)
 
@@ -183,9 +193,9 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
 	case left.Type() != right.Type():
-		return newEvalErrorObject("type mismatch: %s %s %s", left.Type(), operator, right.Type())
+		return object.NewEvalErrorObject("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	default:
-		return newEvalErrorObject("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return object.NewEvalErrorObject("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -217,7 +227,7 @@ func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.O
 
 	env.Set(node.Name.Value, &node.Value)
 
-	return NULL
+	return object.NULL
 }
 
 func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment) object.Object {
@@ -227,14 +237,14 @@ func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment
 	case *ast.IndexExpression:
 		return evalAssignIndexExpr(left, left.Index, &node.Right, env)
 	default:
-		return newEvalErrorObject("can't assign to give type %T", node.Left)
+		return object.NewEvalErrorObject("can't assign to give type %T", node.Left)
 	}
 }
 
 func evalAssignIdentifier(identifier *ast.IdentifierLiteral, right *ast.Expression, env *object.Environment) object.Object {
 	expr, ok := env.Get(identifier.Value)
 	if !ok {
-		return newEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
+		return object.NewEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
 	}
 
 	val := Eval(*expr, env)
@@ -243,11 +253,10 @@ func evalAssignIdentifier(identifier *ast.IdentifierLiteral, right *ast.Expressi
 		observable.Value = right
 		observable.NotifyAll(right)
 	} else {
-		withoutSelfReferences := env.SubstituteReferences(*right, &identifier.Value)
-		env.Set(identifier.Value, &withoutSelfReferences)
+		env.Set(identifier.Value, right)
 	}
 
-	return NULL
+	return object.NULL
 }
 
 func evalAssignIndexExpr(indexExpr *ast.IndexExpression, index ast.Expression, value *ast.Expression, env *object.Environment) object.Object {
@@ -258,29 +267,29 @@ func evalAssignIndexExpr(indexExpr *ast.IndexExpression, index ast.Expression, v
 
 	indexInt, ok := index.(*ast.IntegerLiteral)
 	if !ok {
-		return newEvalErrorObject("expected integer for indexing array, got=%T", index)
+		return object.NewEvalErrorObject("expected integer for indexing array, got=%T", index)
 	}
 
 	if array, ok = indexExpr.Left.(*ast.ArrayLiteral); ok { // if index is used on array directly
 		array.Elements[indexInt.Value] = *value
 
-		return NULL
+		return object.NULL
 	} else if identifier, ok := indexExpr.Left.(*ast.IdentifierLiteral); ok { // if index is used on identifier referencing array
 		currentValue, ok := env.Get(identifier.Value)
 		if !ok {
-			return newEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
+			return object.NewEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
 		}
 		array, ok = (*currentValue).(*ast.ArrayLiteral)
 		if !ok {
-			return newEvalErrorObject(fmt.Sprintf("identifier not array, got=%T", currentValue))
+			return object.NewEvalErrorObject(fmt.Sprintf("identifier not array, got=%T", currentValue))
 		}
 
 		array.Elements[indexInt.Value] = *value
 	} else {
-		return newEvalErrorObject("expected array for index expression, got =%T", indexExpr.Left)
+		return object.NewEvalErrorObject("expected array for index expression, got =%T", indexExpr.Left)
 	}
 
-	return NULL
+	return object.NULL
 }
 
 func evalIdentifier(node *ast.IdentifierLiteral, env *object.Environment) object.Object {
@@ -288,29 +297,29 @@ func evalIdentifier(node *ast.IdentifierLiteral, env *object.Environment) object
 		return Eval(*expr, env)
 	}
 
-	if builtin, ok := builtins[node.Value]; ok {
+	if builtin, ok := object.Builtins[node.Value]; ok {
 		return builtin
 	}
 
-	return newEvalErrorObject(fmt.Sprintf("identifier not found: %s", node.Value))
+	return object.NewEvalErrorObject(fmt.Sprintf("identifier not found: %s", node.Value))
 }
 
 func evalBangOperatorExpression(right object.Object) object.Object {
 	switch right {
-	case TRUE:
-		return FALSE
-	case FALSE:
-		return TRUE
-	case NULL:
-		return TRUE
+	case object.TRUE:
+		return object.FALSE
+	case object.FALSE:
+		return object.TRUE
+	case object.NULL:
+		return object.TRUE
 	default:
-		return FALSE
+		return object.FALSE
 	}
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object, tok token.Token) object.Object {
 	if right.Type() != object.INTEGER_OBJ {
-		return newEvalErrorObject("%sunknown operator: -%s", tokenToPos(tok), right.Type())
+		return object.NewEvalErrorObject("%sunknown operator: -%s", tokenToPos(tok), right.Type())
 	}
 
 	value := right.(*object.Integer).Value
@@ -339,7 +348,7 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "!=":
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
-		return newEvalErrorObject("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return object.NewEvalErrorObject("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -351,7 +360,7 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 	} else if ie.Alternative != nil {
 		return Eval(ie.Alternative, env)
 	} else {
-		return NULL
+		return object.NULL
 	}
 }
 
@@ -365,7 +374,7 @@ func evalStringLiteral(s *ast.StringLiteral, env *object.Environment) object.Obj
 		exprPart := parts.Value.Expr
 
 		if exprPart != nil {
-			val := Eval(exprPart, env)
+			val := Eval(exprPart.Expression, env)
 			out.WriteString(toString(val))
 		}
 
@@ -384,20 +393,20 @@ func evalStringLiteral(s *ast.StringLiteral, env *object.Environment) object.Obj
 }
 
 func evalIndexExpression(node *ast.IndexExpression, env *object.Environment) object.Object {
-	left := Eval(env.SubstituteReferences(node.Left, nil), env)
-	idx := Eval(env.SubstituteReferences(node.Index, nil), env)
+	left := Eval(node.Left, env)
+	idx := Eval(node.Index, env)
 
 	if array, ok := left.(*object.Array); ok {
 		if intIdx, ok := idx.(*object.Integer); ok {
 			max := int64(len(array.Elements) - 1)
 			if intIdx.Value < 0 || intIdx.Value > max {
-				return NULL
+				return object.NULL
 			}
 			return array.Elements[intIdx.Value]
 		}
 	}
 
-	return newEvalErrorObject("indexing for type %T not implemented", node.Left)
+	return object.NewEvalErrorObject("indexing for type %T not implemented", node.Left)
 }
 
 func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object.Object {
@@ -406,10 +415,10 @@ func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object
 		upper *object.Integer
 	)
 
-	evaluated := Eval(env.SubstituteReferences(node.Left, nil), env)
+	evaluated := Eval(node.Left, env)
 	array, ok := evaluated.(*object.Array)
 	if !ok {
-		return newEvalErrorObject("indexing for type %T not implemented", node.Left)
+		return object.NewEvalErrorObject("indexing for type %T not implemented", node.Left)
 	}
 
 	if node.Lower != nil {
@@ -417,7 +426,7 @@ func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object
 		if intObj, ok := val.(*object.Integer); ok {
 			lower = intObj
 		} else {
-			return newEvalErrorObject("lower bound of slice must be of type integer got=%s", val.Type())
+			return object.NewEvalErrorObject("lower bound of slice must be of type integer got=%s", val.Type())
 		}
 	}
 	if node.Upper != nil {
@@ -425,7 +434,7 @@ func evalSliceExpression(node *ast.SliceLiteral, env *object.Environment) object
 		if intObj, ok := val.(*object.Integer); ok {
 			upper = intObj
 		} else {
-			return newEvalErrorObject("lower bound of slice must be of type integer got=%s", val.Type())
+			return object.NewEvalErrorObject("lower bound of slice must be of type integer got=%s", val.Type())
 		}
 	}
 
@@ -498,25 +507,21 @@ func toString(obj object.Object) string {
 	panic(fmt.Sprintf("can't stringify type %T", obj))
 }
 
-func newEvalErrorObject(format string, a ...interface{}) *object.EvalError {
-	return &object.EvalError{Message: fmt.Sprintf(format, a...)}
-}
-
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
 	if input {
-		return TRUE
+		return object.TRUE
 	}
 
-	return FALSE
+	return object.FALSE
 }
 
 func isTruthy(obj object.Object) bool {
 	switch obj {
-	case NULL:
+	case object.NULL:
 		return false
-	case TRUE:
+	case object.TRUE:
 		return true
-	case FALSE:
+	case object.FALSE:
 		return false
 	default:
 		return true
