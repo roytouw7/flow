@@ -11,28 +11,14 @@ import (
 	"Flow/src/utility/slice"
 )
 
-//func substituteWithErrorHandling(node *ast.Node, environment *object.Environment) object.Object {
-//	var err object.Object
-//
-//	defer func() {
-//		if r := recover(); r != nil {
-//			err = object.NewEvalErrorObject("")
-//		}
-//	}()
-//
-//	n =
-//
-//	if expr, ok := node.(*ast.Expression); ok {
-//		node = env.SubstituteReferences(expr, nil)
-//	}
-//
-//	return err
-//}
-
 func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	if expr, ok := node.(ast.Expression); ok {
-		node = env.SubstituteReferences(expr, nil)
+		var err object.Object
+		node, err = safeSubstituteReferences(expr, env)
+		if err != nil {
+			return err
+		}
 	}
 
 	switch node := node.(type) {
@@ -83,6 +69,18 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	}
 
 	return nil
+}
+
+func safeSubstituteReferences(node ast.Expression, env *object.Environment) (substituted ast.Expression, err object.Object) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = object.NewEvalErrorObject("Eval: failed substituting references for %T %q, %s", node, node.String(), r)
+		}
+	}()
+
+	substituted = env.SubstituteReferences(node, nil)
+
+	return
 }
 
 func evalProgram(program *ast.Program, env *object.Environment) object.Object {

@@ -10,15 +10,15 @@ import (
 )
 
 func (test *Suite) TestSubstituteReferencesWithAssignment() {
-	// x = x + y + 7 with y in an outer environment
+	// safeSubstituteReferences = safeSubstituteReferences + y + 7 with y in an outer environment
 	env := object.NewEnvironment()
 	env.Set("y", createInteger(7))
 	env = object.NewEnclosedEnvironment(env)
-	env.Set("x", createInteger(9))
+	env.Set("safeSubstituteReferences", createInteger(9))
 
 	infix := createN1Infix("y", "+", *createInteger(7)) // y + 7
-	infix = createN1Infix("x", "+", infix)              // x + (y + 7)
-	infix = createN1Infix("x", "=", infix)              // x = (x + (y + 7))
+	infix = createN1Infix("safeSubstituteReferences", "+", infix)              // safeSubstituteReferences + (y + 7)
+	infix = createN1Infix("safeSubstituteReferences", "=", infix)              // safeSubstituteReferences = (safeSubstituteReferences + (y + 7))
 
 	result := env.SubstituteReferences(infix, nil)
 
@@ -32,7 +32,7 @@ func (test *Suite) TestSubstituteReferencesWithAssignment() {
 	if !ok {
 		test.T().Errorf("expected left hand side of assignment to be identifier, got=%T", infixExp.Left)
 	}
-	assert.Equal(test.T(), "x", leftIdent.Value)
+	assert.Equal(test.T(), "safeSubstituteReferences", leftIdent.Value)
 	assert.Equal(test.T(), "=", infixExp.Operator)
 
 	infixExp2, ok := infixExp.Right.(*ast.InfixExpression)
@@ -72,7 +72,7 @@ func (test *Suite) TestSubstituteReferencesWithAssignment() {
 	if !ok {
 		assert.Fail(test.T(), fmt.Sprintf("expected left hand side to be identifier literal, got=%T", originalInfixExp.Left))
 	}
-	assert.Equal(test.T(), "x", originalIdentifier.Value)
+	assert.Equal(test.T(), "safeSubstituteReferences", originalIdentifier.Value)
 
 	originalInfixExp2, ok := originalInfixExp.Right.(*ast.InfixExpression)
 	if !ok {
@@ -82,7 +82,7 @@ func (test *Suite) TestSubstituteReferencesWithAssignment() {
 	if !ok {
 		assert.Fail(test.T(), fmt.Sprintf("expected left hand side to be identifier literal, got=%T", originalInfixExp2.Left))
 	}
-	assert.Equal(test.T(), "x", originalIdentifier1.Value)
+	assert.Equal(test.T(), "safeSubstituteReferences", originalIdentifier1.Value)
 }
 
 func createInteger(n int64) *ast.Expression {

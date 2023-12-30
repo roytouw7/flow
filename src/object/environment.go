@@ -57,7 +57,7 @@ func (e *Environment) SubstituteReferences(node ast.Expression, name *string) as
 			}
 			val, ok := e.Get(node.Value)
 			if !ok {
-				panic(fmt.Sprintf("could not find identifier %s in environment or outer environments", node.Value))
+				panic(fmt.Sprintf("could not find identifier %s in closure or outer closures", node.Value))
 			}
 			if e.outer != nil {
 				return e.outer.SubstituteReferences(*val, nil)

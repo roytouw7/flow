@@ -132,7 +132,7 @@ func (test *Suite) TestLetStatements() {
 }
 
 func (test *Suite) TestFunctionLiterals() {
-	input := "(x) => { x + 2; };"
+	input := "(safeSubstituteReferences) => { safeSubstituteReferences + 2; };"
 
 	env := object.NewEnvironment()
 	evaluated := testEval(test.T(), input, 1, env)
@@ -146,11 +146,11 @@ func (test *Suite) TestFunctionLiterals() {
 		test.Failf("TestFunctionLiterals", "expected 1 parameters, got=%d", len(fn.Parameters))
 	}
 
-	if fn.Parameters[0].String() != "x" {
-		test.Failf("TestFunctionLiterals", "parameter is not \"x\" got=%q", fn.Parameters[0])
+	if fn.Parameters[0].String() != "safeSubstituteReferences" {
+		test.Failf("TestFunctionLiterals", "parameter is not \"safeSubstituteReferences\" got=%q", fn.Parameters[0])
 	}
 
-	expectedBody := "(x + 2)"
+	expectedBody := "(safeSubstituteReferences + 2)"
 
 	if fn.Body.String() != expectedBody {
 		test.Failf("TestFunctionLiterals", "expected body to be=%q, got=%q", expectedBody, fn.Body.String())
@@ -163,12 +163,12 @@ func (test *Suite) TestFunctionApplication() {
 		expected interface{}
 		stmts    int
 	}{
-		{"let identity = (x) => { x; }; identity(5);", 5, 2},
-		{"let identity = (x) => { return x; }; identity(5);", 5, 2},
-		{"let add = (x, y) => { return x + y; }; add(7, 9);", 16, 2},
-		{"let add = (x, y) => {x + y; }; add(5 + 5, add(5, 5));", 20, 2},
-		{"(x) => { x; }(5);", 5, 1},
-		{"let identity = (x) => { return x; }; identity(\"test\");", "test", 2},
+		{"let identity = (safeSubstituteReferences) => { safeSubstituteReferences; }; identity(5);", 5, 2},
+		{"let identity = (safeSubstituteReferences) => { return safeSubstituteReferences; }; identity(5);", 5, 2},
+		{"let add = (safeSubstituteReferences, y) => { return safeSubstituteReferences + y; }; add(7, 9);", 16, 2},
+		{"let add = (safeSubstituteReferences, y) => {safeSubstituteReferences + y; }; add(5 + 5, add(5, 5));", 20, 2},
+		{"(safeSubstituteReferences) => { safeSubstituteReferences; }(5);", 5, 1},
+		{"let identity = (safeSubstituteReferences) => { return safeSubstituteReferences; }; identity(\"test\");", "test", 2},
 	}
 
 	for _, tt := range tests {
@@ -189,16 +189,16 @@ func (test *Suite) TestErrorHandling() {
 		expected string
 		stmts    int
 	}{
-		//{"5 + true;", "type mismatch: INTEGER + BOOLEAN", 1},
-		//{"5 + true; 5;", "type mismatch: INTEGER + BOOLEAN", 2},
-		//{"-true;", "1:1: unknown operator: -BOOLEAN", 1},
-		//{"true + false;", "unknown operator: BOOLEAN + BOOLEAN", 1},
-		//{"5; true + false; 5;", "unknown operator: BOOLEAN + BOOLEAN", 3},
-		//{"if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN", 1},
-		{"foobar", "identifier not found: foobar", 1},
-		//{"7 = 9;", "can't assign to give type *ast.IntegerLiteral", 1},
-		//{"a = 9;", "identifier not found: \"a\"", 1},
-		//{"let a = a;", "identifier not found: a", 1},
+		{"5 + true;", "type mismatch: INTEGER + BOOLEAN", 1},
+		{"5 + true; 5;", "type mismatch: INTEGER + BOOLEAN", 2},
+		{"-true;", "1:1: unknown operator: -BOOLEAN", 1},
+		{"true + false;", "unknown operator: BOOLEAN + BOOLEAN", 1},
+		{"5; true + false; 5;", "unknown operator: BOOLEAN + BOOLEAN", 3},
+		{"if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN", 1},
+		{"foobar", "Eval: failed substituting references for *ast.IdentifierLiteral \"foobar\", could not find identifier foobar in closure or outer closures", 1},
+		{"7 = 9;", "Eval: failed substituting references for *ast.InfixExpression \"(7 = 9)\", expected left hand side of assignment expression to be identifier literal, got=*ast.IntegerLiteral", 1},
+		{"a = 9;", "identifier not found: \"a\"", 1},
+		{"let a = a;", "Eval: failed substituting references for *ast.IdentifierLiteral \"a\", could not find identifier a in closure or outer closures", 1},
 	}
 
 	for _, tt := range tests {
