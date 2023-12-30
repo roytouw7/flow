@@ -132,7 +132,7 @@ func (test *Suite) TestLetStatements() {
 }
 
 func (test *Suite) TestFunctionLiterals() {
-	input := "(safeSubstituteReferences) => { safeSubstituteReferences + 2; };"
+	input := "(x) => { x + 2; };"
 
 	env := object.NewEnvironment()
 	evaluated := testEval(test.T(), input, 1, env)
@@ -146,11 +146,11 @@ func (test *Suite) TestFunctionLiterals() {
 		test.Failf("TestFunctionLiterals", "expected 1 parameters, got=%d", len(fn.Parameters))
 	}
 
-	if fn.Parameters[0].String() != "safeSubstituteReferences" {
-		test.Failf("TestFunctionLiterals", "parameter is not \"safeSubstituteReferences\" got=%q", fn.Parameters[0])
+	if fn.Parameters[0].String() != "x" {
+		test.Failf("TestFunctionLiterals", "parameter is not \"x\" got=%q", fn.Parameters[0])
 	}
 
-	expectedBody := "(safeSubstituteReferences + 2)"
+	expectedBody := "(x + 2)"
 
 	if fn.Body.String() != expectedBody {
 		test.Failf("TestFunctionLiterals", "expected body to be=%q, got=%q", expectedBody, fn.Body.String())
@@ -163,12 +163,12 @@ func (test *Suite) TestFunctionApplication() {
 		expected interface{}
 		stmts    int
 	}{
-		{"let identity = (safeSubstituteReferences) => { safeSubstituteReferences; }; identity(5);", 5, 2},
-		{"let identity = (safeSubstituteReferences) => { return safeSubstituteReferences; }; identity(5);", 5, 2},
-		{"let add = (safeSubstituteReferences, y) => { return safeSubstituteReferences + y; }; add(7, 9);", 16, 2},
-		{"let add = (safeSubstituteReferences, y) => {safeSubstituteReferences + y; }; add(5 + 5, add(5, 5));", 20, 2},
-		{"(safeSubstituteReferences) => { safeSubstituteReferences; }(5);", 5, 1},
-		{"let identity = (safeSubstituteReferences) => { return safeSubstituteReferences; }; identity(\"test\");", "test", 2},
+		{"let identity = (x) => { x; }; identity(5);", 5, 2},
+		{"let identity = (x) => { return x; }; identity(5);", 5, 2},
+		{"let add = (x, y) => { return x + y; }; add(7, 9);", 16, 2},
+		{"let add = (x, y) => { x + y; }; add(5 + 5, add(5, 5));", 20, 2},
+		{"(x) => { x; }(5);", 5, 1},
+		{"let identity = (x) => { return x; }; identity(\"test\");", "test", 2},
 	}
 
 	for _, tt := range tests {
