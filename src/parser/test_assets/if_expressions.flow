@@ -1,5 +1,5 @@
-if (x < y) { x }
-if (x > y) {
+if x < y { x }
+if x > y {
     x;
     y;
 }

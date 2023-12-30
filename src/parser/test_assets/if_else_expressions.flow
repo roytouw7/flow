@@ -1,5 +1,5 @@
-if (x < y) { alfa } else { beta }
-if (x > y) {
+if x < y { alfa } else { beta }
+if x > y {
     alfa;
     beta;
 } else {

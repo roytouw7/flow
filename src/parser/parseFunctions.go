@@ -109,22 +109,8 @@ func (p *parser) parseIfExpression() ast.Expression {
 		Token: *p.curToken,
 	}
 
-	if p.peekToken.Type != token.LPAREN {
-		err := cerr.UnexpectedCharError(p.peekToken, "(")
-		p.registerError(cerr.Wrap(err, "parseIfExpression", "following if statement declaration"))
-		return nil
-	}
-
-	p.nextTokenN(2)
-	expression.Condition = p.parseExpression(LOWEST)
-
-	if p.peekToken.Type != token.RPAREN {
-		err := cerr.UnexpectedCharError(p.peekToken, ")")
-		p.registerError(cerr.Wrap(err, "parseIfExpression", "closing if statement condition"))
-		return nil
-	}
-
 	p.nextToken()
+	expression.Condition = p.parseExpression(LOWEST)
 
 	if p.peekToken.Type != token.LBRACE {
 		err := cerr.UnexpectedCharError(p.peekToken, "{")
@@ -211,8 +197,6 @@ func (p *parser) parseFunctionLiteralExpression() ast.Expression {
 
 func (p *parser) parseFunctionParameters() ([]*ast.IdentifierLiteral, cerr.ParseError) {
 	var identifiers []*ast.IdentifierLiteral
-
-	//p.nextToken()
 
 	if p.peekToken.Type == token.RPAREN {
 		return identifiers, nil
