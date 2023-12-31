@@ -607,3 +607,8 @@ func (test *Suite) TestIndexSliceExpressionParsing() {
 		}
 	}
 }
+
+func (test *Suite) TestSubscriptionParsing() {
+	p := CreateProgramFromFile(test.T(), "test_assets/subscribe_expression.flow", 2)
+	_ = p
+}

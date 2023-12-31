@@ -354,7 +354,6 @@ func (p *parser) parseSliceLiteralExpression(left ast.Expression) ast.Expression
 
 	p.nextToken()
 
-
 	if p.curToken.Type != token.COLON {
 		lower := p.parseExpression(SLICE)
 		exp.Lower = &lower
@@ -381,4 +380,22 @@ func (p *parser) parseSliceLiteralExpression(left ast.Expression) ast.Expression
 	}
 
 	return exp
+}
+
+func (p *parser) parseSubscribeExpression(left ast.Expression) ast.Expression {
+	stmt := &ast.SubscriptionExpression{
+		Token:  *p.curToken,
+		Source: left,
+	}
+
+	if p.peekToken.Type == token.LPAREN {
+		p.nextToken()
+		stmt.Body = p.parseFunctionLiteralExpression()
+		return stmt
+	}
+
+	p.nextToken()
+	stmt.Body = p.parseIdentifier()
+
+	return stmt
 }

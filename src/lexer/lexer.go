@@ -196,6 +196,13 @@ func (l *lexer) isSymbolToken(ch rune, meta *metadata.MetaData) (bool, *token.To
 	case '"':
 		l.stringOpen = !l.stringOpen
 		return true, newToken(token.STRING_DELIMITER)
+	case '~':
+		switch {
+		case l.isMultiSymbolToken('>'):
+			return true, newToken(token.SUBSCRIBE)
+		default:
+			return false, newToken(token.UNKNOWN)
+		}
 	default:
 		return false, newToken(token.UNKNOWN)
 	}

@@ -52,6 +52,9 @@ const (
 	// Array
 	LBRACKET = "["
 	RBRACKET = "]"
+
+	// Reactive
+	SUBSCRIBE = "~>"
 )
 
 type Type string

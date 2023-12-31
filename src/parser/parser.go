@@ -12,6 +12,7 @@ const (
 	_ int = iota
 	LOWEST
 	ASSIGNMENT
+	SUBSCRIBE
 	TERNARY
 	EQUALS
 	LESSGREATER
@@ -37,6 +38,7 @@ var precedences = map[token.Type]int{
 	token.ASSIGN:   ASSIGNMENT,
 	token.LBRACKET: SLICE,
 	token.COLON:    ASSIGNMENT,
+	token.SUBSCRIBE: SUBSCRIBE,
 }
 
 type Lexer interface {
@@ -95,6 +97,7 @@ func New(l Lexer) Parser {
 	p.infixParseFns[token.QUESTION] = p.parseTernaryExpression
 	p.infixParseFns[token.LPAREN] = p.parseCallExpression
 	p.infixParseFns[token.LBRACKET] = p.parseLBracketExpression
+	p.infixParseFns[token.SUBSCRIBE] = p.parseSubscribeExpression
 
 	// Set current and peek token
 	p.nextToken()
@@ -240,6 +243,10 @@ func (p *parser) parseExpression(precedence int) ast.Expression {
 	}
 
 	leftExp := prefix()
+
+	for p.peekToken.Type == token.NEWLINE {
+		p.nextToken()
+	}
 
 	for (p.peekToken.Type != token.SEMICOLON && p.peekToken.Type != token.RBRACE) && precedence < precedences[p.peekToken.Type] {
 		infix := p.infixParseFns[p.peekToken.Type]
