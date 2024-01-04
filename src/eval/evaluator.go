@@ -12,7 +12,6 @@ import (
 )
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
-
 	if expr, ok := node.(ast.Expression); ok {
 		var err object.Object
 		node, err = safeSubstituteReferences(expr, env)
@@ -180,8 +179,8 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	}
 
 	operator := node.Operator
-	left := *unwrapObservable(Eval(node.Left, env), env)
-	right := *unwrapObservable(Eval(node.Right, env), env)
+	left := Eval(node.Left, env)
+	right := Eval(node.Right, env)
 
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -197,15 +196,6 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 	}
 }
 
-func unwrapObservable(o object.Object, env *object.Environment) *object.Object {
-	if observable, ok := o.(*object.Observable); ok {
-		val := Eval(*observable.Value, env)
-		return unwrapObservable(val, env)
-	}
-
-	return &o
-}
-
 func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.Object {
 	if sliceLiteral, ok := node.Value.(*ast.SliceLiteral); ok {
 		c := shallowCopySliceLiteral(sliceLiteral, env)
@@ -214,13 +204,6 @@ func evalLetExpression(node *ast.LetStatement, env *object.Environment) object.O
 	val := Eval(node.Value, env)
 	if isError(val) {
 		return val
-	}
-
-	observable := object.NewObservable(&node.Value)
-
-	// if value is an observable we register for future changes to update our own value
-	if o, ok := val.(*object.Observable); ok {
-		o.Register(observable)
 	}
 
 	env.Set(node.Name.Value, &node.Value)
@@ -240,19 +223,12 @@ func evalAssignmentExpression(node *ast.InfixExpression, env *object.Environment
 }
 
 func evalAssignIdentifier(identifier *ast.IdentifierLiteral, right *ast.Expression, env *object.Environment) object.Object {
-	expr, ok := env.Get(identifier.Value)
+	_, ok := env.Get(identifier.Value)
 	if !ok {
 		return object.NewEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
 	}
 
-	val := Eval(*expr, env)
-
-	if observable, ok := val.(*object.Observable); ok {
-		observable.Value = right
-		observable.NotifyAll(right)
-	} else {
-		env.Set(identifier.Value, right)
-	}
+	env.Set(identifier.Value, right)
 
 	return object.NULL
 }

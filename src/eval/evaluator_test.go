@@ -125,9 +125,8 @@ func (test *Suite) TestLetStatements() {
 	for _, tt := range tests {
 		env := object.NewEnvironment()
 		evaluated := testEval(test.T(), tt.input, tt.stmts, env)
-		unwrapped := unwrapObservable(evaluated, env)
 
-		testIntegerObject(test.T(), *unwrapped, tt.expected)
+		testIntegerObject(test.T(), evaluated, tt.expected)
 	}
 }
 
