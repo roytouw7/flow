@@ -255,14 +255,14 @@ func (test *Suite) TestReturnStatements() {
 
 	program := parser.CreateProgramFromFile(test.T(), "./test_assets/return_statements.flow", 1)
 	env := object.NewEnvironment()
-	result := Eval(program, env)
+	result := Eval(program, nil, env)
 	testIntegerObject(test.T(), result, 10)
 }
 
 func (test *Suite) TestStringLiteral() {
 	p := parser.CreateProgram(test.T(), "\"foo ${1 + 7 * 9} bar\";", 1)
 	env := object.NewEnvironment()
-	result := Eval(p, env)
+	result := Eval(p, nil, env)
 	testStringObject(test.T(), result, "foo 64 bar")
 }
 
@@ -302,7 +302,7 @@ func (test *Suite) TestArrayLiteral() {
 
 	p := parser.CreateProgram(test.T(), input, 1)
 	env := object.NewEnvironment()
-	evaluated := Eval(p, env)
+	evaluated := Eval(p, nil, env)
 
 	array, ok := evaluated.(*object.Array)
 	if !ok {
@@ -366,14 +366,14 @@ func (test *Suite) TestArrayIndexing() {
 func (test *Suite) TestEvaluatingHigherOrderFunctions() {
 	program := parser.CreateProgramFromFile(test.T(), "./test_assets/higher_order_functions.flow", 2)
 	env := object.NewEnvironment()
-	evaluated := Eval(program, env)
+	evaluated := Eval(program, nil, env)
 	testIntegerObject(test.T(), evaluated, 0)
 }
 
 func (test *Suite) TestEvaluatingSum() {
 	program := parser.CreateProgramFromFile(test.T(), "./test_assets/sum.flow", 2)
 	env := object.NewEnvironment()
-	evaluated := Eval(program, env)
+	evaluated := Eval(program, nil, env)
 	testIntegerObject(test.T(), evaluated, 6)
 }
 
@@ -397,10 +397,18 @@ func (test *Suite) TestStringLiteralEvaluation() {
 	if !ok {
 		assert.Fail(test.T(), fmt.Sprintf("expected statement.Expression to be *ast.StringLiteral, got=%T", statement.Expression))
 	}
-	result := Eval(stringLiteral, env)
+	result := Eval(stringLiteral, nil, env)
 	stringResult, ok := result.(*object.String)
 	if !ok {
 		assert.Fail(test.T(), fmt.Sprintf("expected result to be *object.String, got=%T", result))
 	}
 	assert.Equal(test.T(), "n:0   n>0:false", stringResult.Value)
+}
+
+func (test *Suite) TestBubbling() {
+	const input = "let a = 0; let b = 0; let c = a > b; a = 1;"
+	program := parser.CreateProgram(test.T(), input, 4)
+	env := object.NewEnvironment()
+	result := Eval(program, nil, env)
+	_ = result
 }

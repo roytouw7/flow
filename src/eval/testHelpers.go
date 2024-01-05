@@ -9,7 +9,7 @@ import (
 
 func testEval(t *testing.T, input string, expectedStatements int, env *object.Environment) object.Object {
 	p := parser.CreateProgram(t, input, expectedStatements)
-	return Eval(p, env)
+	return Eval(p, nil, env)
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
