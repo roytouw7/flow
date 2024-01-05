@@ -12,30 +12,6 @@ import (
 	"Flow/src/utility/slice"
 )
 
-type ObservableNode[T ast.Node] struct {
-	Node T
-	*observer.ConcreteObservable
-}
-
-type ObservableObject[T object.Object] struct {
-	Object T
-	*observer.ConcreteObservable
-}
-
-func wrapNodeWithObservable[T ast.Node](node T, observer *observer.ConcreteObservable) ObservableNode[T] {
-	return ObservableNode[T]{
-		Node:               node,
-		ConcreteObservable: observer,
-	}
-}
-
-func wrapObjectWithObservable[T object.Object](object T, observer *observer.ConcreteObservable) ObservableObject[T] {
-	return ObservableObject[T]{
-		Object:             object,
-		ConcreteObservable: observer,
-	}
-}
-
 func Eval(node ast.Node, parent observer.Observer, env *object.Environment) object.Object {
 	observable := observer.ConcreteObservable{}
 	if parent != nil {
@@ -61,7 +37,7 @@ func Eval(node ast.Node, parent observer.Observer, env *object.Environment) obje
 		right := Eval(node.Right, nil, env)
 		return evalPrefixExpression(node.Operator, right, node.Token)
 	case *ast.InfixExpression:
-		return evalInfixExpression(wrapNodeWithObservable(node, &observable), env)
+		return evalInfixExpression(observer.WrapNodeWithObservable(node, &observable), env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.BooleanLiteral:
@@ -72,7 +48,7 @@ func Eval(node ast.Node, parent observer.Observer, env *object.Environment) obje
 		val := Eval(node.ReturnValue, nil, env)
 		return &object.ReturnValue{Value: val}
 	case *ast.LetStatement:
-		return evalLetExpression(wrapNodeWithObservable(node, &observable), env)
+		return evalLetExpression(observer.WrapNodeWithObservable(node, &observable), env)
 	case *ast.IdentifierLiteral:
 		return evalIdentifier(node, parent, env)
 	case *ast.FunctionLiteralExpression:
@@ -82,7 +58,7 @@ func Eval(node ast.Node, parent observer.Observer, env *object.Environment) obje
 		if isError(fn) {
 			return fn
 		}
-		return applyFunction(wrapObjectWithObservable(fn, &observable), node.Arguments, env)
+		return applyFunction(observer.WrapObjectWithObservable(fn, &observable), node.Arguments, env)
 	case *ast.StringLiteral:
 		return evalStringLiteral(node, parent, env)
 	case *ast.ArrayLiteral:
@@ -158,7 +134,7 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 	return result
 }
 
-func applyFunction(observable ObservableObject[object.Object], args []ast.Expression, env *object.Environment) object.Object {
+func applyFunction(observable observer.ObservableObject[object.Object], args []ast.Expression, env *object.Environment) object.Object {
 	fn := observable.Object
 
 	switch fn := fn.(type) {
@@ -205,7 +181,7 @@ func evalPrefixExpression(operator string, right object.Object, token token.Toke
 	}
 }
 
-func evalInfixExpression(observable ObservableNode[*ast.InfixExpression], env *object.Environment) object.Object {
+func evalInfixExpression(observable observer.ObservableNode[*ast.InfixExpression], env *object.Environment) object.Object {
 	node := observable.Node
 
 	if node.Operator == "=" {
@@ -230,7 +206,7 @@ func evalInfixExpression(observable ObservableNode[*ast.InfixExpression], env *o
 	}
 }
 
-func evalLetExpression(observable ObservableNode[*ast.LetStatement], env *object.Environment) object.Object {
+func evalLetExpression(observable observer.ObservableNode[*ast.LetStatement], env *object.Environment) object.Object {
 	node := observable.Node
 
 	if sliceLiteral, ok := node.Value.(*ast.SliceLiteral); ok {

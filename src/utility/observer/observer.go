@@ -1,5 +1,10 @@
 package observer
 
+import (
+	"Flow/src/ast"
+	"Flow/src/object"
+)
+
 type ObservableObserver interface {
 	Observer
 	Observable
@@ -24,5 +29,29 @@ func (c *ConcreteObservable) Register(observer Observer) {
 func (c *ConcreteObservable) Notify() {
 	for _, observer := range c.observers {
 		observer.Notify()
+	}
+}
+
+type ObservableNode[T ast.Node] struct {
+	Node T
+	*ConcreteObservable
+}
+
+type ObservableObject[T object.Object] struct {
+	Object T
+	*ConcreteObservable
+}
+
+func WrapNodeWithObservable[T ast.Node](node T, observer *ConcreteObservable) ObservableNode[T] {
+	return ObservableNode[T]{
+		Node:               node,
+		ConcreteObservable: observer,
+	}
+}
+
+func WrapObjectWithObservable[T object.Object](object T, observer *ConcreteObservable) ObservableObject[T] {
+	return ObservableObject[T]{
+		Object:             object,
+		ConcreteObservable: observer,
 	}
 }
