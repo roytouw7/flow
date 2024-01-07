@@ -13,17 +13,13 @@ import (
 )
 
 func Eval(node ast.Node, parent observer.Observer, env *object.Environment) object.Object {
-	observable := observer.ConcreteObservable{}
+	observable := observer.WrapNodeWithObservable(node, observer.New())
+	observable, err := safeSubstituteReferences(observable, env)
+	if err != nil {
+		return err
+	}
 	if parent != nil {
 		observable.Register(parent)
-	}
-
-	if expr, ok := node.(ast.Expression); ok {
-		var err object.Object
-		node, err = safeSubstituteReferences(expr, env)
-		if err != nil {
-			return err
-		}
 	}
 
 	switch node := node.(type) {
@@ -36,8 +32,10 @@ func Eval(node ast.Node, parent observer.Observer, env *object.Environment) obje
 	case *ast.PrefixExpression:
 		right := Eval(node.Right, nil, env)
 		return evalPrefixExpression(node.Operator, right, node.Token)
+	case *object.InfixExpressionObservable:
+		return evalInfixExpression(observable, env)
 	case *ast.InfixExpression:
-		return evalInfixExpression(observer.WrapNodeWithObservable(node, &observable), env)
+		return evalInfixExpression(observable, env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.BooleanLiteral:
@@ -48,7 +46,7 @@ func Eval(node ast.Node, parent observer.Observer, env *object.Environment) obje
 		val := Eval(node.ReturnValue, nil, env)
 		return &object.ReturnValue{Value: val}
 	case *ast.LetStatement:
-		return evalLetExpression(observer.WrapNodeWithObservable(node, &observable), env)
+		return evalLetExpression(observable, env)
 	case *ast.IdentifierLiteral:
 		return evalIdentifier(node, parent, env)
 	case *ast.FunctionLiteralExpression:
@@ -58,7 +56,7 @@ func Eval(node ast.Node, parent observer.Observer, env *object.Environment) obje
 		if isError(fn) {
 			return fn
 		}
-		return applyFunction(observer.WrapObjectWithObservable(fn, &observable), node.Arguments, env)
+		return applyFunction(object.WrapObjectWithObservable(fn, observer.New()), node.Arguments, env)
 	case *ast.StringLiteral:
 		return evalStringLiteral(node, parent, env)
 	case *ast.ArrayLiteral:
@@ -71,19 +69,23 @@ func Eval(node ast.Node, parent observer.Observer, env *object.Environment) obje
 		return evalIndexExpression(node, env)
 	case *ast.SliceLiteral:
 		return evalSliceExpression(node, env)
+	case *ast.SubscriptionExpression:
+		return evalSubscriptionExpression(observable, env)
 	}
 
 	return nil
 }
 
-func safeSubstituteReferences(node ast.Expression, env *object.Environment) (substituted ast.Expression, err object.Object) {
+func safeSubstituteReferences(observable observer.ObservableNode[ast.Node], env *object.Environment) (substituted observer.ObservableNode[ast.Node], err object.Object) {
+	node := observable.Node
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = object.NewEvalErrorObject("Eval: failed substituting references for %T %q, %s", node, node.String(), r)
 		}
 	}()
 
-	substituted = env.SubstituteReferences(node, nil)
+	substituted = env.SubstituteReferences(observable, nil)
 
 	return
 }
@@ -134,7 +136,7 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 	return result
 }
 
-func applyFunction(observable observer.ObservableObject[object.Object], args []ast.Expression, env *object.Environment) object.Object {
+func applyFunction(observable object.ObservableObject[object.Object], args []ast.Expression, env *object.Environment) object.Object {
 	fn := observable.Object
 
 	switch fn := fn.(type) {
@@ -156,7 +158,7 @@ func extendFunctionEnv(fn *object.Function, args []ast.Expression) *object.Envir
 	env := object.NewEnclosedEnvironment(fn.Env)
 
 	for paramIdx, param := range fn.Parameters {
-		env.Set(param.Value, &args[paramIdx])
+		env.Set(param.Value, observer.WrapNodeWithObservable[ast.Node](args[paramIdx], observer.New()))
 	}
 
 	return env
@@ -181,16 +183,26 @@ func evalPrefixExpression(operator string, right object.Object, token token.Toke
 	}
 }
 
-func evalInfixExpression(observable observer.ObservableNode[*ast.InfixExpression], env *object.Environment) object.Object {
-	node := observable.Node
+func evalInfixExpression(observable observer.ObservableNode[ast.Node], env *object.Environment) object.Object {
+	node, ok := observable.Node.(*object.InfixExpressionObservable)
+	if !ok {
+		panic(fmt.Sprintf("Node not infix expression, got=%T!", observable.Node))
+	}
+
+	node.Left.Register(observable)
+	node.Right.Register(observable)
+
+	observable.SetHandler(func(id observer.TraceId) {
+		//fmt.Println("infix notify")
+	})
 
 	if node.Operator == "=" {
 		return evalAssignmentExpression(node, observable, env)
 	}
 
 	operator := node.Operator
-	left := Eval(node.Left, &observable, env)
-	right := Eval(node.Right, &observable, env)
+	left := Eval(node.Left.Node, &observable, env)
+	right := Eval(node.Right.Node, &observable, env)
 
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -206,82 +218,110 @@ func evalInfixExpression(observable observer.ObservableNode[*ast.InfixExpression
 	}
 }
 
-func evalLetExpression(observable observer.ObservableNode[*ast.LetStatement], env *object.Environment) object.Object {
-	node := observable.Node
-
-	if sliceLiteral, ok := node.Value.(*ast.SliceLiteral); ok {
-		c := shallowCopySliceLiteral(sliceLiteral, env)
-		node.Value = c
+func evalLetExpression(observable observer.ObservableNode[ast.Node], env *object.Environment) object.Object {
+	node, ok := observable.Node.(*ast.LetStatement)
+	if !ok {
+		panic(fmt.Sprintf("Node not let statement, got=%T!", observable.Node))
 	}
+
+	//if sliceLiteral, ok := node.Value.(*ast.SliceLiteral); ok {
+	//	c := shallowCopySliceLiteral(sliceLiteral, env)
+	//	node.Value = c
+	//}
 	val := Eval(node.Value, observable, env)
 	if isError(val) {
 		return val
 	}
 
-	env.Set(node.Name.Value, &node.Value)
+	right := observer.WrapNodeWithObservable[ast.Node](node.Value, observer.New())
+	right.Register(observable)
+
+	env.Set(node.Name.Value, right)
+
+	observable.SetHandler(func(id observer.TraceId) {
+		latest, ok := env.Get(node.Name.Value)
+		if !ok {
+			panic(fmt.Sprintf("identifier %q is removed from closure", node.Name.Value))
+		}
+		//fmt.Println("letExpression notify")
+		latest.Notify(&id)
+	})
 
 	return object.NULL
 }
 
-func evalAssignmentExpression(node *ast.InfixExpression, parent observer.Observer, env *object.Environment) object.Object {
-	parent.Notify()
-	switch left := node.Left.(type) {
+func evalAssignmentExpression(node *object.InfixExpressionObservable, parent observer.Observer, env *object.Environment) object.Object {
+	right := node.Right.Node.(ast.Expression)
+	switch left := node.Left.Node.(type) {
 	case *ast.IdentifierLiteral:
-		return evalAssignIdentifier(left, &node.Right, env)
-	case *ast.IndexExpression:
-		return evalAssignIndexExpr(left, left.Index, &node.Right, env)
+		return evalAssignIdentifier(left, &right, env)
+	//case *ast.IndexExpression:
+	//	return evalAssignIndexExpr(left, left.Index, &node.Right, env)
 	default:
 		return object.NewEvalErrorObject("can't assign to give type %T", node.Left)
 	}
 }
 
 func evalAssignIdentifier(identifier *ast.IdentifierLiteral, right *ast.Expression, env *object.Environment) object.Object {
-	_, ok := env.Get(identifier.Value)
+	val, ok := env.Get(identifier.Value)
 	if !ok {
 		return object.NewEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
 	}
 
-	env.Set(identifier.Value, right)
+	exp := observer.WrapNodeWithObservable[ast.Node](*right, observer.New())
+	exp.Register(val)
+
+	exp.SetHandler(func(id observer.TraceId) {
+		latest, ok := env.Get(identifier.Value)
+		if !ok {
+			panic("asd")
+		}
+		latest.Notify(&id)
+		//fmt.Println("assign notify")
+	})
+
+	env.Set(identifier.Value, exp)
+	val.Notify(nil)
 
 	return object.NULL
 }
 
-func evalAssignIndexExpr(indexExpr *ast.IndexExpression, index ast.Expression, value *ast.Expression, env *object.Environment) object.Object {
-	var (
-		array    *ast.ArrayLiteral
-		indexInt *ast.IntegerLiteral
-	)
-
-	indexInt, ok := index.(*ast.IntegerLiteral)
-	if !ok {
-		return object.NewEvalErrorObject("expected integer for indexing array, got=%T", index)
-	}
-
-	if array, ok = indexExpr.Left.(*ast.ArrayLiteral); ok { // if index is used on array directly
-		array.Elements[indexInt.Value] = *value
-
-		return object.NULL
-	} else if identifier, ok := indexExpr.Left.(*ast.IdentifierLiteral); ok { // if index is used on identifier referencing array
-		currentValue, ok := env.Get(identifier.Value)
-		if !ok {
-			return object.NewEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
-		}
-		array, ok = (*currentValue).(*ast.ArrayLiteral)
-		if !ok {
-			return object.NewEvalErrorObject(fmt.Sprintf("identifier not array, got=%T", currentValue))
-		}
-
-		array.Elements[indexInt.Value] = *value
-	} else {
-		return object.NewEvalErrorObject("expected array for index expression, got =%T", indexExpr.Left)
-	}
-
-	return object.NULL
-}
+//func evalAssignIndexExpr(indexExpr *ast.IndexExpression, index ast.Expression, value *ast.Expression, env *object.Environment) object.Object {
+//	var (
+//		array    *ast.ArrayLiteral
+//		indexInt *ast.IntegerLiteral
+//	)
+//
+//	indexInt, ok := index.(*ast.IntegerLiteral)
+//	if !ok {
+//		return object.NewEvalErrorObject("expected integer for indexing array, got=%T", index)
+//	}
+//
+//	if array, ok = indexExpr.Left.(*ast.ArrayLiteral); ok { // if index is used on array directly
+//		array.Elements[indexInt.Value] = *value
+//
+//		return object.NULL
+//	} else if identifier, ok := indexExpr.Left.(*ast.IdentifierLiteral); ok { // if index is used on identifier referencing array
+//		currentValue, ok := env.Get(identifier.Value)
+//		if !ok {
+//			return object.NewEvalErrorObject(fmt.Sprintf("identifier not found: %q", identifier.Value))
+//		}
+//		array, ok = (*currentValue).(*ast.ArrayLiteral)
+//		if !ok {
+//			return object.NewEvalErrorObject(fmt.Sprintf("identifier not array, got=%T", currentValue))
+//		}
+//
+//		array.Elements[indexInt.Value] = *value
+//	} else {
+//		return object.NewEvalErrorObject("expected array for index expression, got =%T", indexExpr.Left)
+//	}
+//
+//	return object.NULL
+//}
 
 func evalIdentifier(node *ast.IdentifierLiteral, parent observer.Observer, env *object.Environment) object.Object {
 	if expr, ok := env.Get(node.Value); ok {
-		return Eval(*expr, parent, env)
+		return Eval(expr.Node, parent, env)
 	}
 
 	if builtin, ok := object.Builtins[node.Value]; ok {
@@ -446,35 +486,79 @@ func copyArray[T any](source []T) []T {
 	return result
 }
 
-// shallowCopySliceLiteral makes a shallow slice copy, when slicing of identifier which points to array it makes a shallow copy to slice on
-func shallowCopySliceLiteral(slice *ast.SliceLiteral, env *object.Environment) *ast.SliceLiteral {
-	if _, ok := slice.Left.(*ast.ArrayLiteral); ok {
-		return slice
-	}
-	id, ok := slice.Left.(*ast.IdentifierLiteral)
+//// shallowCopySliceLiteral makes a shallow slice copy, when slicing of identifier which points to array it makes a shallow copy to slice on
+//func shallowCopySliceLiteral(slice *ast.SliceLiteral, env *object.Environment) *ast.SliceLiteral {
+//	if _, ok := slice.Left.(*ast.ArrayLiteral); ok {
+//		return slice
+//	}
+//	id, ok := slice.Left.(*ast.IdentifierLiteral)
+//	if !ok {
+//		panic(fmt.Sprintf("expected slice.left to be of type *ast.IdentifierLiteral got=%T", slice.Left))
+//	}
+//	identifierValue, ok := env.Get(id.Value)
+//	if !ok {
+//		panic(fmt.Sprintf("identifier %q not found, unable to slice on", id.Value))
+//	}
+//	array, ok := (*identifierValue).(*ast.ArrayLiteral)
+//	if !ok {
+//		panic(fmt.Sprintf("slice not supported for type %T", identifierValue))
+//	}
+//
+//	newArray := ast.ArrayLiteral{
+//		Token:     array.Token,
+//		Elements:  copyArray(array.Elements),
+//		Generator: array.Generator,
+//	}
+//	return &ast.SliceLiteral{
+//		Token: slice.Token,
+//		Left:  &newArray,
+//		Lower: slice.Lower,
+//		Upper: slice.Upper,
+//	}
+//}
+
+func evalSubscriptionExpression(observable observer.ObservableNode[ast.Node], env *object.Environment) object.Object {
+	node, ok := observable.Node.(*ast.SubscriptionExpression)
 	if !ok {
-		panic(fmt.Sprintf("expected slice.left to be of type *ast.IdentifierLiteral got=%T", slice.Left))
-	}
-	identifierValue, ok := env.Get(id.Value)
-	if !ok {
-		panic(fmt.Sprintf("identifier %q not found, unable to slice on", id.Value))
-	}
-	array, ok := (*identifierValue).(*ast.ArrayLiteral)
-	if !ok {
-		panic(fmt.Sprintf("slice not supported for type %T", identifierValue))
+		panic(fmt.Sprintf("Node not SubscriptionExpression, got=%T", observable.Node))
 	}
 
-	newArray := ast.ArrayLiteral{
-		Token:     array.Token,
-		Elements:  copyArray(array.Elements),
-		Generator: array.Generator,
+	left := node.Source
+	id, ok := left.(*ast.IdentifierLiteral)
+	if !ok {
+		panic(fmt.Sprintf("Left hand side not IdentifierLiteral, got=%T", left))
 	}
-	return &ast.SliceLiteral{
-		Token: slice.Token,
-		Left:  &newArray,
-		Lower: slice.Lower,
-		Upper: slice.Upper,
+
+	val, ok := env.Get(id.Value)
+	if !ok {
+		panic(fmt.Sprintf("Identifier not found in closure %q", id.Value))
 	}
+
+	val.Register(observable)
+
+	right := node.Body
+	fnId, ok := right.(*ast.IdentifierLiteral)
+	if !ok {
+		panic(fmt.Sprintf("expected identifier got=%T", node.Body))
+	}
+
+	val.SetHandler(func(traceId observer.TraceId) {
+		latest, ok := env.Get(id.Value)
+		if !ok {
+			panic(fmt.Sprintf("identifier no longer in closure %q", id.Value))
+		}
+
+		var callExpression ast.Node = &ast.CallExpression{
+			Function: fnId,
+			Arguments: []ast.Expression{
+				latest.Node.(ast.Expression),
+			},
+		}
+		Eval(callExpression, nil, env)
+		//fmt.Println("subscription notify")
+	})
+
+	return &object.Null{}
 }
 
 func toString(obj object.Object) string {

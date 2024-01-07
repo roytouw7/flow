@@ -1,8 +1,9 @@
 package ast
 
 import (
-	"Flow/src/token"
 	"bytes"
+
+	"Flow/src/token"
 )
 
 type InfixExpression struct {

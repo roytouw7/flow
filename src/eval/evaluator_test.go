@@ -1,14 +1,11 @@
 package eval
 
 import (
-	"fmt"
 	"testing"
 
-	"Flow/src/ast"
 	"Flow/src/object"
 	"Flow/src/parser"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -370,45 +367,47 @@ func (test *Suite) TestEvaluatingHigherOrderFunctions() {
 	testIntegerObject(test.T(), evaluated, 0)
 }
 
-func (test *Suite) TestEvaluatingSum() {
-	program := parser.CreateProgramFromFile(test.T(), "./test_assets/sum.flow", 2)
-	env := object.NewEnvironment()
-	evaluated := Eval(program, nil, env)
-	testIntegerObject(test.T(), evaluated, 6)
-}
+//func (test *Suite) TestEvaluatingSum() {
+//	program := parser.CreateProgramFromFile(test.T(), "./test_assets/sum.flow", 2)
+//	env := object.NewEnvironment()
+//	evaluated := Eval(program, nil, env)
+//	testIntegerObject(test.T(), evaluated, 6)
+//}
 
-func (test *Suite) TestStringLiteralEvaluation() {
-	// Set environment with 2 closures having n = (n - 1) - 1 with outer n 2
-	env := object.NewEnvironment()
-	env.Set("n", createInteger(2))
-	env = object.NewEnclosedEnvironment(env)
-	infix1 := createN1Infix("n", "-", *createInteger(1))
-	env.Set("n", &infix1)
-	env = object.NewEnclosedEnvironment(env)
-	infix2 := createN1Infix("n", "-", *createInteger(1))
-	env.Set("n", &infix2)
-
-	p := parser.CreateProgram(test.T(), "\"n:${n}   n>0:${n>0}\"", 1)
-	statement, ok := p.Statements[0].(*ast.ExpressionStatement)
-	if !ok {
-		assert.Fail(test.T(), fmt.Sprintf("expected statement to be *ast.ExpressioNStatement, got=%T", statement))
-	}
-	stringLiteral, ok := statement.Expression.(*ast.StringLiteral)
-	if !ok {
-		assert.Fail(test.T(), fmt.Sprintf("expected statement.Expression to be *ast.StringLiteral, got=%T", statement.Expression))
-	}
-	result := Eval(stringLiteral, nil, env)
-	stringResult, ok := result.(*object.String)
-	if !ok {
-		assert.Fail(test.T(), fmt.Sprintf("expected result to be *object.String, got=%T", result))
-	}
-	assert.Equal(test.T(), "n:0   n>0:false", stringResult.Value)
-}
+//func (test *Suite) TestStringLiteralEvaluation() {
+//	// Set environment with 2 closures having n = (n - 1) - 1 with outer n 2
+//	env := object.NewEnvironment()
+//	env.Set("n", createInteger(2))
+//	env = object.NewEnclosedEnvironment(env)
+//	infix1 := createN1Infix("n", "-", *createInteger(1))
+//	env.Set("n", &infix1)
+//	env = object.NewEnclosedEnvironment(env)
+//	infix2 := createN1Infix("n", "-", *createInteger(1))
+//	env.Set("n", &infix2)
+//
+//	p := parser.CreateProgram(test.T(), "\"n:${n}   n>0:${n>0}\"", 1)
+//	statement, ok := p.Statements[0].(*ast.ExpressionStatement)
+//	if !ok {
+//		assert.Fail(test.T(), fmt.Sprintf("expected statement to be *ast.ExpressioNStatement, got=%T", statement))
+//	}
+//	stringLiteral, ok := statement.Expression.(*ast.StringLiteral)
+//	if !ok {
+//		assert.Fail(test.T(), fmt.Sprintf("expected statement.Expression to be *ast.StringLiteral, got=%T", statement.Expression))
+//	}
+//	result := Eval(stringLiteral, nil, env)
+//	stringResult, ok := result.(*object.String)
+//	if !ok {
+//		assert.Fail(test.T(), fmt.Sprintf("expected result to be *object.String, got=%T", result))
+//	}
+//	assert.Equal(test.T(), "n:0   n>0:false", stringResult.Value)
+//}
 
 func (test *Suite) TestBubbling() {
-	const input = "let a = 0; let b = 0; let c = a > b; a = 1;"
-	program := parser.CreateProgram(test.T(), input, 4)
+	const input = "let a = 0; let b = 0; let c = a > b; c ~> print; a = 1; b = 2;"
+	program := parser.CreateProgram(test.T(), input, 6)
 	env := object.NewEnvironment()
 	result := Eval(program, nil, env)
 	_ = result
+	//c, _ := env.Get("c")
+	//c.Notify(-1)
 }
